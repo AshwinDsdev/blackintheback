@@ -1,0 +1,786 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="/CssFiles/jquery-ui-1.12.1.custom.css">
+
+    <link rel="stylesheet" href="/CssFiles/StyleSheet2.css">
+    <link rel="stylesheet" href="/BbLoan_Search.css">
+    <!--[if IE 7]><link href="../../CssFiles/StyleSheet2_ie7.css" rel="stylesheet" type="text/css" /><![endif]-->
+    <link rel="stylesheet" href="/CssFiles/StyleSheet_NextGen.css">
+    <link rel="stylesheet" href="/CssFiles/ConfirmBox.css">
+    <link href="/CssFiles/bootstrap-icons.css" rel="stylesheet" type="text/css">
+    <script src="/JScriptSource/jquery/jquery.min.js" type="text/javascript"></script>
+    <script src="/JScriptSource/jquery/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="/JScriptSource/jquery/jquery.validate.min.js" type="text/javascript"></script>
+    <script src="/JScriptSource/jquery/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>
+
+    <script src="/JScriptSource/htmMainMenu1.js" type="text/javascript"></script>
+    <script src="/JScriptSource/bitbcommon.js" type="text/javascript"></script>
+    <script src="/JScriptSource/bitbcommon_NextGen.js" type="text/javascript"></script>
+    <script src="/JScriptSource/ConfirmBox.js" type="text/javascript" defer=""></script>
+    <title>BackInTheBlack® - Loan Search</title>
+    <script type="text/javascript">
+        function beginRequest(sender, args) {
+            ShowProcessing();
+        }
+
+        function endRequest(sender, args) {
+            HideProcessing();
+        }
+
+        function ShowProcessing() {
+            $("#divLoading").show();
+        }
+
+        function HideProcessing() {
+            $("#divLoading").hide();
+        }
+
+        function ShowImage() {
+            var imgProgressBar = document.getElementById('imgProcessing');
+            imgProgressBar.src = '/Images/clock.gif';
+        }
+        $(document).ready(function () {
+            setTimeout(HideProcessing, 1000);
+        })
+    </script>
+</head>
+
+<body>
+    <form id="__AjaxAntiForgeryForm" method="post"><input name="__RequestVerificationToken" type="hidden"
+            value="at3J-hdz51DKdBj0rbpQ0PPg7rMdwBV_r5WIyXfCNNZ8pJjw5I6uDr9JEQDrz6l07nHW48m0R9_t-n9a6XPPbMtWatg1"></form>
+    <script language="javascript" src="/JScriptSource/AntiForgeryTokenMgmt.js" type="text/javascript"></script>
+    <header id="layout-header-logo">
+
+        <table width="100%">
+            <tbody>
+                <tr>
+                    <td style="text-align: left;"><img src="/Images/bitblogo.png" alt="BackInTheBlack®"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <hr style="margin: 0px; padding: 0px;">
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div id="divMainMenu">
+            <table id="navMainMenu">
+                <tbody>
+                    <tr>
+                        <td>
+                            <li>
+                                <a id="nav_SITE_SEARCHLOANS"
+                                    href="javascript:NavMenuPreventDoubleClick('/LoanViews/LoanInfo/SearchLoan?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542&amp;IntType=')">Search
+                                    Loans</a>
+                            </li>
+                        </td>
+                        <td>
+                            <li>
+                                <a id="nav_SITE_TODOLIST"
+                                    href="javascript:NavMenuPreventDoubleClick('/LoanActivity/Workflow/TodoList?AppSessionID=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542')">ToDo
+                                    List</a>
+                            </li>
+                        </td>
+                        <td>
+                            <li>
+                                <a id="nav_SITE_BULLBOARD"
+                                    href="javascript:NavMenuPreventDoubleClick('/AppManagement/BulletinBoard?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542')">Bulletin
+                                    Board</a>
+                            </li>
+                        </td>
+                        <td class="logout">
+                            <li>
+                                <table style="float: right;">
+                                    <tbody>
+                                        <tr>
+                                            <td><a href="/Login/Account/Logout">Logout</a></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </li>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <script
+            [%nonce%]="">$(document).ready(function () { __ngMenuEvent.attach('fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542') });</script>
+        <table class="pageTitle mt-3 mb-3" align="center">
+            <tbody>
+                <tr>
+                    <td>&nbsp;Loan Search</td>
+                </tr>
+            </tbody>
+        </table>
+    </header>
+    <section class="pageBody">
+
+        <style>
+            .flex-basis-30 {
+                flex-basis: 30%;
+                margin-right: 5px;
+                flex-shrink: 0;
+            }
+
+            .flex-basis-40 {
+                flex-basis: 40%;
+                margin-right: 5px;
+                flex-shrink: 0;
+            }
+
+            .float-left {
+                float: left;
+            }
+
+            .w-80 {
+                width: 80%;
+            }
+
+            .m-auto {
+                margin: 0 auto;
+            }
+        </style>
+
+        <form
+            action="/LoanViews/LoanInfo/SearchLoan/SaveSearchLoan?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542"
+            id="search-loan-form" method="post" novalidate="novalidate"><input name="__RequestVerificationToken"
+                type="hidden"
+                value="IGJyfIsn1B462Wp48MAxYRyoeJrKkTRgzfwidwKlhJBETKTr7HepqI-rPTHK7GgiW0fM5hE8c3te3xGp0shjeyB9mMQ1"><input
+                data-val="true" data-val-required="The IsLoanIndentifierSelected field is required."
+                id="IsLoanIndentifierSelected" name="IsLoanIndentifierSelected" type="hidden" value="True">
+            <div class="m-auto">
+                <div class="panel mt-3">
+                    <div class="heading">
+                        <div class="flex flex-row  flex-space-between flex-vertical-center">
+                            <span class="medium bold">Search Criteria</span>
+                            <a id="display-pdf" class="display-anchor cursor-pointer"
+                                title="Click to display pdf contents">
+                                <span class="bi bi-question-circle-fill large blue mt-3"></span>
+                            </a>
+                        </div>
+                    </div>
+                    <div id="errorSummary" class="validation-summary-errors mt-3 hide flex flex-content-center">
+                        <ul></ul>
+                    </div>
+                    <div id="errorMessageSearch" class="validation-summary-errors mt-3 hide"></div>
+                    <div class="body py-0">
+                        <div id="simple-search" class="panel mb-2 mt-3">
+                            <div class="heading">
+                                <div class="flex flex-row medium bold flex-space-between flex-vertical-center">
+                                    <span><i class="bi bi-person-lines-fill large blue mr-2"></i>Loan Identifiers</span>
+                                    <span class="self-right"><button type="button" class="linkbutton" id="advSearch"><i
+                                                class="bi bi-search big mr-2"></i>Advanced Search</button></span>
+                                </div>
+                            </div>
+                            <div class="p-2 flex flex-row flex-vertical-center mb-2">
+                                <div class="flex mt-3 w-30">
+                                    <div class="flex-basis-40 text-right flex-vertical-center">
+                                        Number:
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <span>
+                                            <input class="textBox_Left w-40" data-val="true"
+                                                data-val-length="  Please enter minimum 3 characters."
+                                                data-val-length-max="15" data-val-length-min="3"
+                                                data-val-requiredif="Loan Number is required."
+                                                data-val-requiredif-comparisons="EqualTo"
+                                                data-val-requiredif-otherproperties="IsLoanIndentifierSelected"
+                                                data-val-requiredif-values="True" id="LoanNumber" name="LoanNumber"
+                                                type="text" value="">
+                                            <script
+                                                type="text/javascript">NumericHelper({ maxLength: '15', precision: '0', isInteger: 'True' == 'True', element: 'LoanNumber' });</script>
+                                        </span>
+                                        <div class="field-validation-valid error-field-message ml-2"
+                                            data-valmsg-for="LoanNumber" data-valmsg-replace="true"></div>
+                                    </div>
+                                </div>
+                                <div class="flex mt-3 w-30">
+                                    <div class="flex-basis-40 text-right flex-vertical-center">
+                                        Type:
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <select class="dropDown w-40" id="LoanTypeCd" name="LoanTypeCd">
+                                            <option value="Servicer">Servicer</option>
+                                            <option value="Investor">Investor</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="flex mt-3 w-30 flex-vertical-center">
+                                    <div class="flex-basis-40 text-right">
+                                        Exact Search:
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <input checked="checked" data-val="true"
+                                            data-val-required="The Exact Search field is required." id="IsExactSearch"
+                                            name="IsExactSearch" type="checkbox" value="true"><input
+                                            name="IsExactSearch" type="hidden" value="false">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="adv-search" class="hide mt-3">
+                            <div class="panel">
+                                <div class="heading">
+                                    <div class="flex flex-row flex-space-between flex-vertical-center">
+                                        <span class="medium bold"><i
+                                                class="bi bi-people-fill large blue mr-2"></i>Borrower
+                                            Identifiers</span>
+                                        <span class="self-right"><button type="button" class="linkbutton"
+                                                id="simpleSearch"><i class="bi bi-search big mr-2"></i>Simple
+                                                Search</button></span>
+                                    </div>
+                                </div>
+                                <div class="p-2 flex flex-row flex-vertical-center mb-2 w-100">
+                                    <div class="flex mt-3 w-25">
+                                        <div class="flex-basis-40 text-right flex-vertical-center">
+                                            First Name:
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <input class="textBox_Left w-40" data-val="true"
+                                                data-val-length="  Please enter minimum 3 characters."
+                                                data-val-length-max="32" data-val-length-min="3"
+                                                data-val-requiredifnotempty="First Name is required."
+                                                data-val-requiredifnotempty-dependentproperty="LastName" id="FirstName"
+                                                maxlength="32" name="FirstName" type="text" value="">
+                                            <div class="field-validation-valid error-field-message ml-2"
+                                                data-valmsg-for="FirstName" data-valmsg-replace="true"></div>
+                                        </div>
+
+                                    </div>
+                                    <div class="flex mt-3 w-25">
+                                        <div class="flex-basis-40 text-right flex-vertical-center">
+                                            Last Name:
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <input class="textBox_Left w-40" data-val="true"
+                                                data-val-length="  Please enter minimum 3 characters."
+                                                data-val-length-max="32" data-val-length-min="3"
+                                                data-val-requiredifnotempty="Last Name is required."
+                                                data-val-requiredifnotempty-dependentproperty="FirstName" id="LastName"
+                                                maxlength="32" name="LastName" type="text" value="">
+                                            <div class="field-validation-valid error-field-message ml-2"
+                                                data-valmsg-for="LastName" data-valmsg-replace="true"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex mt-3 w-25">
+                                        <div class="flex-basis-40 text-right flex-vertical-center">
+                                            SSN:
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <span>
+                                                <input class="textBox_Left w-40" data-val="true"
+                                                    data-val-length="  Please enter minimum 3 characters."
+                                                    data-val-length-max="16" data-val-length-min="3" id="SSNNumber"
+                                                    name="SSNNumber" type="text" value="">
+                                                <script
+                                                    type="text/javascript">NumericHelper({ maxLength: '11', precision: '0', isInteger: 'True' == 'True', element: 'SSNNumber' });</script>
+                                            </span>
+                                            <div class="field-validation-valid error-field-message ml-2"
+                                                data-valmsg-for="SSNNumber" data-valmsg-replace="true"></div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel mt-3">
+                                <div class="heading">
+                                    <div class="flex flex-row flex-vertical-center">
+                                        <span class="medium bold"><i
+                                                class="bi bi-houses-fill large blue mr-2"></i>Property
+                                            Identifiers</span>
+                                    </div>
+                                </div>
+                                <div class="p-2 flex flex-row flex-vertical-center mb-2 w-100">
+                                    <div class="flex mt-3 w-25">
+                                        <div class="flex-basis-40 text-right flex-vertical-center">
+                                            Street:
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <input class="textBox_Left w-40" data-val="true"
+                                                data-val-length="  Please enter minimum 3 characters."
+                                                data-val-length-max="80" data-val-length-min="3"
+                                                id="PropertyStreetAddressLine1" maxlength="80"
+                                                name="PropertyStreetAddressLine1" type="text" value="">
+                                            <div class="field-validation-valid error-field-message ml-2"
+                                                data-valmsg-for="PropertyStreetAddressLine1" data-valmsg-replace="true">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex mt-3 w-25">
+                                        <div class="flex-basis-40 text-right flex-vertical-center">
+                                            Zip:
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <span>
+                                                <input class="textBox_Left w-40" data-val="true"
+                                                    data-val-length="  Please enter minimum 3 characters."
+                                                    data-val-length-max="8" data-val-length-min="3"
+                                                    data-val-requiredifnotempty="Zip is required."
+                                                    data-val-requiredifnotempty-dependentproperty="PropertyStreetAddressLine1"
+                                                    id="ZipCode" name="ZipCode" type="text" value="">
+                                                <script
+                                                    type="text/javascript">NumericHelper({ maxLength: '5', precision: '0', isInteger: 'True' == 'True', element: 'ZipCode' });</script>
+                                            </span>
+                                            <div class="field-validation-valid error-field-message align-left"
+                                                data-valmsg-for="ZipCode" data-valmsg-replace="true"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex mt-3 w-25">
+                                        <div class="flex-basis-40 text-right flex-vertical-center">
+                                            State:
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <select class="dropDown w-100" data-val="true"
+                                                data-val-requiredifnotempty="State is required."
+                                                data-val-requiredifnotempty-dependentproperty="ZipCode" id="StateCode"
+                                                name="StateCode">
+                                                <option value="">Select</option>
+                                                <option value="AP">AP Armed Forces Pacific</option>
+                                                <option value="AB">AB Alberta</option>
+                                                <option value="BC">BC British Columbia</option>
+                                                <option value="MB">MB Manitoba</option>
+                                                <option value="NB">NB New Brunswick</option>
+                                                <option value="NL">NL Newfoundland and Labrador</option>
+                                                <option value="NS">NS Nova Scotia</option>
+                                                <option value="NT">NT Northwest Territories</option>
+                                                <option value="NU">NU Nunavut</option>
+                                                <option value="ON">ON Ontario</option>
+                                                <option value="PE">PE Prince Edward Island</option>
+                                                <option value="QC">QC Quebec</option>
+                                                <option value="SK">SK Saskatchewan</option>
+                                                <option value="YT">YT Yukon</option>
+                                                <option value="AL">AL Alabama</option>
+                                                <option value="AK">AK Alaska</option>
+                                                <option value="AS">AS American Samoa</option>
+                                                <option value="AZ">AZ Arizona</option>
+                                                <option value="AR">AR Arkansas</option>
+                                                <option value="CA">CA California</option>
+                                                <option value="CO">CO Colorado</option>
+                                                <option value="CT">CT Connecticut</option>
+                                                <option value="DE">DE Delaware</option>
+                                                <option value="DC">DC District of Columbia</option>
+                                                <option value="FM">FM Federated States of Micronesia</option>
+                                                <option value="FL">FL Florida</option>
+                                                <option value="GA">GA Georgia</option>
+                                                <option value="GU">GU Guam</option>
+                                                <option value="HI">HI Hawaii</option>
+                                                <option value="ID">ID Idaho</option>
+                                                <option value="IL">IL Illinois</option>
+                                                <option value="IN">IN Indiana</option>
+                                                <option value="IA">IA Iowa</option>
+                                                <option value="KS">KS Kansas</option>
+                                                <option value="KY">KY Kentucky</option>
+                                                <option value="LA">LA Louisiana</option>
+                                                <option value="ME">ME Maine</option>
+                                                <option value="MH">MH Marshall Islands</option>
+                                                <option value="MD">MD Maryland</option>
+                                                <option value="MA">MA Massachusetts</option>
+                                                <option value="MI">MI Michigan</option>
+                                                <option value="MN">MN Minnesota</option>
+                                                <option value="MS">MS Mississippi</option>
+                                                <option value="MO">MO Missouri</option>
+                                                <option value="MT">MT Montana</option>
+                                                <option value="NE">NE Nebraska</option>
+                                                <option value="NV">NV Nevada</option>
+                                                <option value="NH">NH New Hampshire</option>
+                                                <option value="NJ">NJ New Jersey</option>
+                                                <option value="NM">NM New Mexico</option>
+                                                <option value="NY">NY New York</option>
+                                                <option value="NC">NC North Carolina</option>
+                                                <option value="ND">ND North Dakota</option>
+                                                <option value="MP">MP Northern Mariana Islands</option>
+                                                <option value="OH">OH Ohio</option>
+                                                <option value="OK">OK Oklahoma</option>
+                                                <option value="OR">OR Oregon</option>
+                                                <option value="PW">PW Palau</option>
+                                                <option value="PA">PA Pennsylvania</option>
+                                                <option value="PR">PR Puerto Rico</option>
+                                                <option value="RI">RI Rhode Island</option>
+                                                <option value="SC">SC South Carolina</option>
+                                                <option value="SD">SD South Dakota</option>
+                                                <option value="TN">TN Tennessee</option>
+                                                <option value="TX">TX Texas</option>
+                                                <option value="TT">TT Trust Territories</option>
+                                                <option value="UT">UT Utah</option>
+                                                <option value="VT">VT Vermont</option>
+                                                <option value="VI">VI Virgin Islands</option>
+                                                <option value="VA">VA Virginia</option>
+                                                <option value="WA">WA Washington</option>
+                                                <option value="WV">WV West Virginia</option>
+                                                <option value="WI">WI Wisconsin</option>
+                                                <option value="WY">WY Wyoming</option>
+                                                <option value="AE">AE Armed Forces Africa</option>
+                                                <option value="AA">AA Armed Forces Americas</option>
+                                            </select>
+                                            <div class="field-validation-valid error-field-message align-left"
+                                                data-valmsg-for="StateCode" data-valmsg-replace="true"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center py-3 p-2">
+                        <button id="btnSubmit" class="linkbutton" type="button">Submit</button>
+                        <button id="btnReset" class="linkbutton" type="button">Reset</button>
+                    </div>
+                </div>
+
+                <div id="searchGrid" class="mt-3 hide">
+
+                    <style>
+                        .flex-basis-30 {
+                            flex-basis: 30%;
+                            margin-right: 5px;
+                            flex-shrink: 0;
+                        }
+
+                        .flex-basis-40 {
+                            flex-basis: 40%;
+                            margin-right: 5px;
+                            flex-shrink: 0;
+                        }
+
+                        .new-ui-table tbody>tr:hover {
+                            background-color: #ebe5658f !important;
+                        }
+                    </style>
+
+                    <div class="panel">
+                        <div class="heading">
+                            <div class="flex flex-row flex-space-between flex-vertical-center">
+                                <span class="medium bold">Search Results</span>
+                            </div>
+                        </div>
+                        <div class="body">
+                            <table class="new-ui-table striped ">
+                                <thead>
+                                    <tr class="table-title">
+                                        <th class="w-20 ">Loan Number</th>
+                                        <th class="w-25 ">Loan Classification</th>
+                                        <th class="w-25 ">Borrower</th>
+                                        <th class="w-20 ">Property Address</th>
+                                        <th class="w-10 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <script type="text/javascript">
+                        $(function () {
+                            $('.grid-loan-anchor').on("click", function () {
+                                searchData.gotoLoanInfo($(this).data("loannum"));
+                            });
+                        });
+                    </script>
+
+                </div>
+
+            </div>
+        </form>
+        <script>
+
+            let validator = $("#search-loan-form");
+            let saveUrl = '/LoanViews/LoanInfo/SearchLoan/SaveSearchLoan?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
+
+            const searchData = (function () {
+
+                function initUI() {
+                    attachEvents();
+                }
+
+                function gotoLoanInfo(loannum) {
+                    let baseUrl = '/LoanViews/LoanInfo/SearchLoan/PreLoanProcess?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
+                    let url = new URL(baseUrl, window.location.origin);
+                    url.searchParams.append('loanNum', loannum);
+                    ShowProcessing();
+                    setTimeout(function () {
+                        window.location = url;
+                    }, 200);
+                }
+
+                function attachEvents() {
+                    $('#advSearch').on("click", function () {
+                        resetSimpleSearch();
+                    });
+
+                    $('#simpleSearch').on("click", function () {
+                        advSimpleSearch();
+                    });
+
+                    $('#btnReset').on("click", function () {
+                        resetSimpleSearch();
+                        advSimpleSearch();
+                        resetValidation();
+
+                    });
+
+                    $('#btnSubmit').on("click", function () {
+                        saveForm();
+                    });
+
+                    $('.display-anchor').on("click", function () {
+                        displayPdf();
+                    });
+
+                    $("#search-loan-form").keydown(function (e) {
+                        if ("Enter" === e.key) {
+                            saveForm();
+                            return false;
+                        }
+                    });
+                }
+
+                function displayPdf() {
+                    const l_url = '/LoanViews/LoanInfo/SearchLoan/DisplayPdf?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
+                    openWindowWithOutHookAndWindowName(l_url, 'pdf');
+                }
+
+                function resetValidation() {
+                    resetFieldValidation('#LoanNumber');
+                    resetFieldValidation('#MemberNumber');
+                    resetFieldValidation('#FirstName');
+                    resetFieldValidation('#LastName');
+                    resetFieldValidation('#SSNNumber');
+                    resetFieldValidation('#PropertyStreetAddressLine1');
+                    resetFieldValidation('#ZipCode');
+                    resetFieldValidation('#StateCode');
+                }
+                function resetFieldValidation(selector) {
+                    let field = $(selector);
+
+                    field.removeClass("input-validation-error");
+                    field.addClass("valid");
+
+                    field.closest("form").find("[data-valmsg-for='" + field.attr("name") + "']")
+                        .removeClass("field-validation-error")
+                        .addClass("field-validation-valid")
+                        .text("");
+                }
+                function resetSimpleSearch() {
+                    $('#IsLoanIndentifierSelected').val(false);
+                    $('#errorMessageSearch').hide();
+                    $('#simple-search').addClass('hide');
+                    $('#adv-search').removeClass('hide');
+                    $('#simple-search').find('input:text').val('');
+                    $('#LoanTypeCd').prop('selectedIndex', 0);
+                    $('#searchGrid').hide();
+                    $('#errorSummary').addClass('hide');
+                }
+
+                function advSimpleSearch() {
+                    $('#IsLoanIndentifierSelected').val(true);
+                    $('#errorMessageSearch').hide();
+                    $('#adv-search').addClass('hide');
+                    $('#simple-search').removeClass('hide');
+                    $('#adv-search').find('input:text').val('');
+                    $('#StateCode').prop('selectedIndex', 0);
+                    $('#searchGrid').hide();
+                    $('#errorSummary').addClass('hide');
+                    $('#IsExactSearch').prop('checked', true);
+                }
+
+                function saveForm() {
+                    $('#errorMessageSearch').hide();
+                    let isValid = $("#search-loan-form").valid();
+                    let isSearchValid = validator.valid() && validateSearchLoan();
+
+                    if (isValid && isSearchValid) {
+                        $(".validation-summary-errors ul").empty();
+                        __Ajax.Post({
+                            url: saveUrl,
+                            data: $("#search-loan-form").serialize(),
+                            callBack: formSubmitAjaxCallBack,
+                            errorSummaryId: 'errorSummary'
+                        });
+                    }
+                    return false;
+                }
+
+                function formSubmitAjaxCallBack(response) {
+
+                    if (response.RecordCount === 0) {
+                        displayValidationSummary('errorSummary', response.Messages);
+                    }
+
+                    if (response.RecordCount === 1 && response.IsRedirect && response.IsServicer) {
+                        let baseUrl = '/LoanViews/LoanInfo/SearchLoan/PreLoanProcess?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
+                        let url = new URL(baseUrl, window.location.origin);
+                        url.searchParams.append('loanNum', response.LoanNum);
+                        ShowProcessing();
+                        setTimeout(function () {
+                            window.location = url;
+                        }, 200);
+                    }
+
+                    if (response.RecordCount > 1 || (response.RecordCount >= 1 && !response.IsServicer)) {
+                        reloadGrid();
+                    }
+                }
+
+                function reloadGrid() {
+                    const baseUrl = '/LoanViews/LoanInfo/SearchLoan/LoadGrid?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
+
+                    let url = new URL(baseUrl, window.location.origin);
+
+                    __Ajax.Post({
+                        url: url.href,
+                        data: $('#search-loan-form').serialize(),
+                        callBack: (data) => {
+                            $('#searchGrid').html(data);
+                        }
+                    });
+                    $('#searchGrid').show();
+                }
+
+                function displayValidationSummary(summaryId, summaryMsgs) {
+                    const summary = $(`#${summaryId}`);
+                    const list = $(`#${summaryId} ul`);
+                    list.empty();
+
+                    const listElem = list[0];
+
+                    summaryMsgs.forEach(msg => {
+                        const item = document.createElement('li');
+                        item.innerText = msg;
+                        listElem.appendChild(item);
+                    });
+                    $('#searchGrid').hide();
+                    summary.removeClass('hide');
+                }
+
+                $.validator.unobtrusive.adapters.add('requiredifnotempty', ['dependentproperty'], function (options) {
+                    let params = {
+                        dependentproperty: options.params.dependentproperty,
+                    };
+                    options.rules['requiredifnotempty'] = params;
+                    options.messages['requiredifnotempty'] = options.message;
+                });
+
+                $.validator.addMethod("requiredifnotempty", function (value, element, params) {
+                    let l_dependentPropertyValue = $('#' + params.dependentproperty).val()
+                    if (l_dependentPropertyValue.trim() !== '' && $.trim(value) === '') {
+                        return false;
+                    }
+                    return true;
+                });
+
+                $.validator.unobtrusive.adapters.add('requiredif', ['otherproperties', 'values', 'comparisons'], function (options) {
+                    let params = {
+                        otherproperties: options.params.otherproperties,
+                        values: options.params.values,
+                        comparisons: options.params.comparisons
+                    };
+                    options.rules['requiredif'] = params;
+                    options.messages['requiredif'] = options.message;
+                });
+
+                $.validator.addMethod('requiredif', function (value, element, params) {
+                    let otherProperties = params.otherproperties.split(',');
+                    let values = params.values.split(',');
+                    let comparisons = params.comparisons.split(',');
+
+                    for (let l_index = 0; l_index < otherProperties.length; l_index++) {
+                        let otherProperty = $('[name="' + otherProperties[l_index] + '"]');
+                        let otherValue = otherProperty.val();
+                        let comparison = comparisons[l_index];
+                        if (compareValues(otherValue, values[l_index], comparison)) {
+                            let Loanno = $.trim($('#LoanNumber').val());
+                            if (Loanno.length >= 3) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                });
+
+                function compareValues(value1, value2, comparison) {
+                    switch (comparison) {
+                        case 'EqualTo':
+                            return (value1?.toLowerCase() ?? '') === (value2?.toLowerCase() ?? '');
+                        case 'NotEqualTo':
+                            return value1 != value2;
+                        case 'GreaterThan':
+                            return parseFloat(value1) > parseFloat(value2);
+                        case 'LessThan':
+                            return parseFloat(value1) < parseFloat(value2);
+                        default:
+                            return false;
+                    }
+                }
+
+                function validateSearchLoan() {
+                    let result = true;
+                    const isLoanIdentifierSelected = $('#IsLoanIndentifierSelected').val();
+
+                    if (isLoanIdentifierSelected === "false") {
+                        const firstName = $.trim($('#FirstName').val());
+                        const lastName = $.trim($('#LastName').val());
+                        const ssn = $.trim($('#SSNNumber').val());
+                        const street = $.trim($('#PropertyStreetAddressLine1').val());
+                        const zipCode = $.trim($('#ZipCode').val());
+                        const selectedStates = $.trim($('#StateCode').val());
+                        const memberNum = $.trim($('#MemberNumber').val());
+
+                        if (firstName.length === 0 && lastName.length === 0
+                            && ssn.length === 0 && street.length === 0
+                            && zipCode.length === 0 && selectedStates.length === 0
+                            && memberNum.length === 0) {
+
+                            $('#errorMessageSearch').show();
+                            $("#errorMessageSearch").text('Invalid search combination, please modify your criteria and try again. ');
+
+                            result = false;
+                        }
+                    }
+
+                    return result;
+                }
+
+                return {
+                    initUI: initUI,
+                    gotoLoanInfo: gotoLoanInfo,
+                }
+            })();
+
+            $(function () {
+                searchData.initUI();
+            });
+
+        </script>
+    </section>
+    <div id="divLoading" style="display: none;">
+        <div id="preloaderOverlay"></div>
+        <div id="preloaderContainer">
+            <p>Please wait while we process your request...</p>
+            <div id="preloaderImg"></div>
+        </div>
+    </div>
+    <footer id="layoutFooter">
+
+        <table width="100%">
+            <tbody>
+                <tr>
+                    <td>
+                        <hr>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <font style="font-size: 7pt;">1303835-ILBUW06</font>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </footer>
+
+
+
+</body>
+
+</html>

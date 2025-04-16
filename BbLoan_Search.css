@@ -1,0 +1,92 @@
+body,
+html {
+    height: 100%;
+}
+
+body {
+    min-width: 800px;
+}
+
+.pageBody {
+    width: 100% !important;
+}
+
+.normal-font {
+    font-weight: normal !important;
+}
+
+.modalProcessing {
+    border: solid 2px #000000 !important;
+    border-radius: 0 !important;
+    z-index: 9999;
+}
+
+.modalProcessing.ui-widget.ui-widget-content .ui-dialog-titlebar {
+    display: none !important;
+}
+
+.custom-overlay {
+    opacity: 0.9 !important;
+}
+
+#divLoading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+}
+
+#divLoading #preloaderOverlay {
+    background-color: #aaaaaa;
+    opacity: 0.9;
+    height: 100%;
+    width: 100%;
+}
+
+#divLoading #preloaderContainer {
+    position: absolute;
+    padding: .25rem 1.5rem;
+    left: 42%;
+    top: 47%;
+    border: 2px solid;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background-color: #fff;
+}
+
+#divLoading #preloaderContainer p {
+    margin-bottom: 0;
+    font-weight: bold;
+}
+
+#divLoading #preloaderContainer #preloaderImg {
+    width: 200px;
+    height: 30px;
+    background-image: url('/Images/clock.gif');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.localField {
+    padding: 1px 4px 1px 4px;
+    vertical-align: top;
+    text-align: left;
+}
+
+.localFieldLabel {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.no-left-nav {
+    margin-left: 0px !important;
+}
+
+.content {
+    display: none;
+    overflow: hidden;
+}
