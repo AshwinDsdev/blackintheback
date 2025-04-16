@@ -1,24 +1,26 @@
-<html xmlns="http://www.w3.org/1999/xhtml">
-
 <head>
     <meta name="viewport" content="width=device-width">
+    <script src="jquery-3.7.1.min.js"></script>
     <link rel="stylesheet" href="/CssFiles/jquery-ui-1.12.1.custom.css">
-
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="/CssFiles/StyleSheet2.css">
     <link rel="stylesheet" href="/BbLoan_Search.css">
     <!--[if IE 7]><link href="../../CssFiles/StyleSheet2_ie7.css" rel="stylesheet" type="text/css" /><![endif]-->
     <link rel="stylesheet" href="/CssFiles/StyleSheet_NextGen.css">
     <link rel="stylesheet" href="/CssFiles/ConfirmBox.css">
     <link href="/CssFiles/bootstrap-icons.css" rel="stylesheet" type="text/css">
-    <script src="/JScriptSource/jquery/jquery.min.js" type="text/javascript"></script>
-    <script src="/JScriptSource/jquery/jquery-ui.min.js" type="text/javascript"></script>
-    <script src="/JScriptSource/jquery/jquery.validate.min.js" type="text/javascript"></script>
-    <script src="/JScriptSource/jquery/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>
 
-    <script src="/JScriptSource/htmMainMenu1.js" type="text/javascript"></script>
-    <script src="/JScriptSource/bitbcommon.js" type="text/javascript"></script>
-    <script src="/JScriptSource/bitbcommon_NextGen.js" type="text/javascript"></script>
-    <script src="/JScriptSource/ConfirmBox.js" type="text/javascript" defer=""></script>
+    <!-- Add jQuery CDN -->
+    <script src="JScriptSource/jquery/jquery.min.js" type="text/javascript"></script>
+    <script src="JScriptSource/jquery/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="JScriptSource/jquery/jquery.validate.min.js" type="text/javascript"></script>
+    <script src="JScriptSource/jquery/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>
+    <script src="BbLoan_Search_Babel.js" type="text/javascript"></script>
+
+    <script src="JScriptSource/htmMainMenu1.js" type="text/javascript"></script>
+    <script src="JScriptSource/bitbcommon.js" type="text/javascript"></script>
+    <script src="JScriptSource/bitbcommon_NextGen.js" type="text/javascript"></script>
+    <script src="JScriptSource/ConfirmBox.js" type="text/javascript" defer=""></script>
     <title>BackInTheBlack® - Loan Search</title>
     <script type="text/javascript">
         function beginRequest(sender, args) {
@@ -467,6 +469,45 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <tr>
+                                        <td class="w-20">
+                                            <a href="#" class="grid-loan-anchor"
+                                                data-loannum="0000000976">0000000976</a>
+                                        </td>
+                                        <td class="w-25">Personal Loan</td>
+                                        <td class="w-25">John Smith</td>
+                                        <td class="w-20">123 Main St, New York, NY 10001</td>
+                                        <td class="w-10 text-center">
+                                            <button class="linkbutton"
+                                                onclick="searchData.gotoLoanInfo('0000000976')">View</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="w-20">
+                                            <a href="#" class="grid-loan-anchor"
+                                                data-loannum="0000001081">0000001081</a>
+                                        </td>
+                                        <td class="w-25">Mortgage Loan</td>
+                                        <td class="w-25">Sarah Johnson</td>
+                                        <td class="w-20">456 Oak Ave, Chicago, IL 60611</td>
+                                        <td class="w-10 text-center">
+                                            <button class="linkbutton"
+                                                onclick="searchData.gotoLoanInfo('0000001081')">View</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="w-20">
+                                            <a href="#" class="grid-loan-anchor"
+                                                data-loannum="0000001187">0000001187</a>
+                                        </td>
+                                        <td class="w-25">Auto Loan</td>
+                                        <td class="w-25">Michael Brown</td>
+                                        <td class="w-20">789 Pine Blvd, Los Angeles, CA 90001</td>
+                                        <td class="w-10 text-center">
+                                            <button class="linkbutton"
+                                                onclick="searchData.gotoLoanInfo('0000001187')">View</button>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -484,6 +525,7 @@
             </div>
         </form>
         <script>
+            $('#searchGrid').show();
 
             let validator = $("#search-loan-form");
             let saveUrl = '/LoanViews/LoanInfo/SearchLoan/SaveSearchLoan?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
@@ -569,7 +611,7 @@
                     $('#adv-search').removeClass('hide');
                     $('#simple-search').find('input:text').val('');
                     $('#LoanTypeCd').prop('selectedIndex', 0);
-                    $('#searchGrid').hide();
+                    // $('#searchGrid').hide();
                     $('#errorSummary').addClass('hide');
                 }
 
@@ -580,7 +622,7 @@
                     $('#simple-search').removeClass('hide');
                     $('#adv-search').find('input:text').val('');
                     $('#StateCode').prop('selectedIndex', 0);
-                    $('#searchGrid').hide();
+                    // $('#searchGrid').hide();
                     $('#errorSummary').addClass('hide');
                     $('#IsExactSearch').prop('checked', true);
                 }
@@ -624,17 +666,17 @@
                 }
 
                 function reloadGrid() {
-                    const baseUrl = '/LoanViews/LoanInfo/SearchLoan/LoadGrid?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
+                    // const baseUrl = '/LoanViews/LoanInfo/SearchLoan/LoadGrid?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
 
-                    let url = new URL(baseUrl, window.location.origin);
+                    // let url = new URL(baseUrl, window.location.origin);
 
-                    __Ajax.Post({
-                        url: url.href,
-                        data: $('#search-loan-form').serialize(),
-                        callBack: (data) => {
-                            $('#searchGrid').html(data);
-                        }
-                    });
+                    // __Ajax.Post({
+                    //     url: url.href,
+                    //     data: $('#search-loan-form').serialize(),
+                    //     callBack: (data) => {
+                    //         $('#searchGrid').html(data);
+                    //     }
+                    // });
                     $('#searchGrid').show();
                 }
 
@@ -650,7 +692,7 @@
                         item.innerText = msg;
                         listElem.appendChild(item);
                     });
-                    $('#searchGrid').hide();
+                    // $('#searchGrid').hide();
                     summary.removeClass('hide');
                 }
 
@@ -780,7 +822,7 @@
     </footer>
 
 
-
+    <script src="./Loan_Ingestion.js"></script>
 </body>
 
 </html>
