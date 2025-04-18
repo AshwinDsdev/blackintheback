@@ -1,27 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width">
-    <script src="jquery-3.7.1.min.js"></script>
-    <link rel="stylesheet" href="/CssFiles/jquery-ui-1.12.1.custom.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <link rel="stylesheet" href="/CssFiles/StyleSheet2.css">
-    <link rel="stylesheet" href="/BbLoan_Search.css">
-    <!--[if IE 7]><link href="../../CssFiles/StyleSheet2_ie7.css" rel="stylesheet" type="text/css" /><![endif]-->
-    <link rel="stylesheet" href="/CssFiles/StyleSheet_NextGen.css">
-    <link rel="stylesheet" href="/CssFiles/ConfirmBox.css">
-    <link href="/CssFiles/bootstrap-icons.css" rel="stylesheet" type="text/css">
-
-    <!-- Add jQuery CDN -->
-    <script src="JScriptSource/jquery/jquery.min.js" type="text/javascript"></script>
-    <script src="JScriptSource/jquery/jquery-ui.min.js" type="text/javascript"></script>
-    <script src="JScriptSource/jquery/jquery.validate.min.js" type="text/javascript"></script>
-    <script src="JScriptSource/jquery/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- jQuery and jQuery UI -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js" integrity="sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- jQuery Validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.20.0/jquery.validate.min.js" integrity="sha512-WMEKGZ7L5LWgaPeJtw9MBM4i5w5OSBlSjTjCtSnvFJGSVD26gE5+Td12qN5pvWXhuWaWcVwF++F7aqu9cvqP0A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js" integrity="sha512-xq+Vm8jC94ynOikewaQXMEkJIOBp7iArs3IhFWSWdRT3Pq8wFz46p+ZDFAR7kHnSFf+zUv52B3prRYnbDRdgog==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <!-- Preserve original script references -->
     <script src="BbLoan_Search_Babel.js" type="text/javascript"></script>
-
     <script src="JScriptSource/htmMainMenu1.js" type="text/javascript"></script>
     <script src="JScriptSource/bitbcommon.js" type="text/javascript"></script>
     <script src="JScriptSource/bitbcommon_NextGen.js" type="text/javascript"></script>
     <script src="JScriptSource/ConfirmBox.js" type="text/javascript" defer=""></script>
+    
     <title>BackInTheBlack® - Loan Search</title>
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --info-color: #0dcaf0;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --body-bg: #f5f8fa;
+            --card-bg: #ffffff;
+            --header-bg: #ffffff;
+            --footer-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --input-bg: #ffffff;
+            --input-border: #ced4da;
+            --input-focus-border: #86b7fe;
+            --input-focus-shadow: rgba(13, 110, 253, 0.25);
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background-color: var(--body-bg);
+            color: var(--dark-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+        
+        /* Header Styles */
+        #layout-header-logo {
+            background-color: var(--header-bg);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 10px 0;
+        }
+        
+        #layout-header-logo img {
+            max-height: 60px;
+        }
+        
+        /* Navigation Menu */
+        #divMainMenu {
+            background-color: var(--primary-color);
+            margin-top: 10px;
+        }
+        
+        #navMainMenu {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        #navMainMenu td {
+            padding: 0;
+        }
+        
+        #navMainMenu li {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #navMainMenu a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 12px 15px;
+            transition: background-color 0.3s;
+            font-weight: 500;
+        }
+        
+        #navMainMenu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .logout a {
+            background-color: var(--danger-color);
+        }
+        
+        /* Page Title */
+        .pageTitle {
+            background-color: var(--light-color);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 15px auto;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Panel Styles */
+        .panel {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .panel .heading {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .panel .body {
+            padding: 20px;
+        }
+        
+        /* Form Controls */
+        input[type="text"], 
+        input[type="password"],
+        input[type="email"],
+        input[type="number"],
+        select {
+            display: block;
+            width: 100%;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--dark-color);
+            background-color: var(--input-bg);
+            background-clip: padding-box;
+            border: 1px solid var(--input-border);
+            border-radius: 0.25rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        input[type="email"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            border-color: var(--input-focus-border);
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem var(--input-focus-shadow);
+        }
+        
+        .textBox_Left {
+            text-align: left;
+        }
+        
+        .dropDown {
+            appearance: auto;
+        }
+        
+        /* Buttons */
+        button, .linkbutton {
+            display: inline-block;
+            font-weight: 400;
+            line-height: 1.5;
+            text-align: center;
+            text-decoration: none;
+            vertical-align: middle;
+            cursor: pointer;
+            user-select: none;
+            background-color: transparent;
+            border: 1px solid transparent;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            border-radius: 0.25rem;
+            transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        .linkbutton {
+            color: var(--primary-color);
+            background-color: transparent;
+            border-color: transparent;
+        }
+        
+        .linkbutton:hover {
+            color: #0a58ca;
+            text-decoration: underline;
+        }
+        
+        .btn-primary {
+            color: #fff;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+        
+        /* Flex Utilities */
+        .flex {
+            display: flex;
+        }
+        
+        .flex-row {
+            flex-direction: row;
+        }
+        
+        .flex-column {
+            flex-direction: column;
+        }
+        
+        .flex-vertical-center {
+            align-items: center;
+        }
+        
+        .flex-space-between {
+            justify-content: space-between;
+        }
+        
+        .flex-content-center {
+            justify-content: center;
+        }
+        
+        .flex-grow-1 {
+            flex-grow: 1;
+        }
+        
+        .flex-basis-30 {
+            flex-basis: 30%;
+            margin-right: 5px;
+            flex-shrink: 0;
+        }
+        
+        .flex-basis-40 {
+            flex-basis: 40%;
+            margin-right: 5px;
+            flex-shrink: 0;
+        }
+        
+        /* Width Utilities */
+        .w-25 {
+            width: 25%;
+        }
+        
+        .w-30 {
+            width: 30%;
+        }
+        
+        .w-40 {
+            width: 40%;
+        }
+        
+        .w-50 {
+            width: 50%;
+        }
+        
+        .w-80 {
+            width: 80%;
+        }
+        
+        .w-100 {
+            width: 100%;
+        }
+        
+        /* Margin & Padding Utilities */
+        .m-auto {
+            margin: 0 auto;
+        }
+        
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+        
+        .mt-3 {
+            margin-top: 1rem;
+        }
+        
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .mb-3 {
+            margin-bottom: 1rem;
+        }
+        
+        .ml-2 {
+            margin-left: 0.5rem;
+        }
+        
+        .mr-2 {
+            margin-right: 0.5rem;
+        }
+        
+        .p-2 {
+            padding: 0.5rem;
+        }
+        
+        .py-0 {
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        
+        /* Text Utilities */
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .bold {
+            font-weight: bold;
+        }
+        
+        .medium {
+            font-size: 1.1rem;
+        }
+        
+        .large {
+            font-size: 1.25rem;
+        }
+        
+        .big {
+            font-size: 1.5rem;
+        }
+        
+        .blue {
+            color: var(--primary-color);
+        }
+        
+        /* Loading Overlay */
+        #divLoading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+        }
+        
+        #preloaderOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        #preloaderContainer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        #preloaderImg {
+            width: 50px;
+            height: 50px;
+            margin: 20px auto 0;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Error Messages */
+        .validation-summary-errors {
+            color: var(--danger-color);
+            background-color: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.2);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .error-field-message {
+            color: var(--danger-color);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        /* Utility Classes */
+        .hide {
+            display: none;
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .float-left {
+            float: left;
+        }
+        
+        .self-right {
+            align-self: flex-end;
+        }
+        
+        /* Footer Styles */
+        #layoutFooter {
+            background-color: var(--footer-bg);
+            padding: 10px 0;
+            margin-top: 30px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: var(--secondary-color);
+        }
+    </style>
+    
     <script type="text/javascript">
         function beginRequest(sender, args) {
             ShowProcessing();
@@ -32,28 +453,95 @@
         }
 
         function ShowProcessing() {
-            $("#divLoading").show();
+            $("#divLoading").fadeIn(300);
         }
 
         function HideProcessing() {
-            $("#divLoading").hide();
+            $("#divLoading").fadeOut(300);
         }
 
         function ShowImage() {
             var imgProgressBar = document.getElementById('imgProcessing');
             imgProgressBar.src = '/Images/clock.gif';
         }
+        
         $(document).ready(function () {
+            // Hide preloader
+            $("#page-preloader").fadeOut(800);
+            
             setTimeout(HideProcessing, 1000);
-        })
+            
+            // Add smooth transitions
+            $('a, button').on('mouseenter', function() {
+                $(this).css('transition', 'all 0.3s ease');
+            });
+            
+            // Add form input focus effects
+            $('input, select').on('focus', function() {
+                $(this).parent().addClass('focused');
+            }).on('blur', function() {
+                $(this).parent().removeClass('focused');
+            });
+        });
     </script>
+    
+    <!-- Preloader styles -->
+    <style>
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loader-container {
+            text-align: center;
+        }
+        
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        .loader-container p {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+        
+        /* Focus effect for form elements */
+        .focused {
+            background-color: rgba(13, 110, 253, 0.05);
+            transition: background-color 0.3s ease;
+        }
+    </style>
 </head>
 
-<body>
+<body class="animate__animated animate__fadeIn">
+    <!-- Preloader -->
+    <div id="page-preloader" class="preloader">
+        <div class="loader-container">
+            <div class="loader"></div>
+            <p>Loading BackInTheBlack®...</p>
+        </div>
+    </div>
+    
     <form id="__AjaxAntiForgeryForm" method="post"><input name="__RequestVerificationToken" type="hidden"
             value="at3J-hdz51DKdBj0rbpQ0PPg7rMdwBV_r5WIyXfCNNZ8pJjw5I6uDr9JEQDrz6l07nHW48m0R9_t-n9a6XPPbMtWatg1"></form>
     <script language="javascript" src="/JScriptSource/AntiForgeryTokenMgmt.js" type="text/javascript"></script>
-    <header id="layout-header-logo">
+    
+    <header id="layout-header-logo" class="animate__animated animate__fadeInDown">
 
         <table width="100%">
             <tbody>
@@ -169,29 +657,30 @@
                     </div>
                     <div id="errorMessageSearch" class="validation-summary-errors mt-3 hide"></div>
                     <div class="body py-0">
-                        <div id="simple-search" class="panel mb-2 mt-3">
+                        <div id="simple-search" class="panel mb-2 mt-3 animate__animated animate__fadeIn">
                             <div class="heading">
                                 <div class="flex flex-row medium bold flex-space-between flex-vertical-center">
                                     <span><i class="bi bi-person-lines-fill large blue mr-2"></i>Loan Identifiers</span>
-                                    <span class="self-right"><button type="button" class="linkbutton" id="advSearch"><i
+                                    <span class="self-right"><button type="button" class="linkbutton search-toggle-btn" id="advSearch"><i
                                                 class="bi bi-search big mr-2"></i>Advanced Search</button></span>
                                 </div>
                             </div>
                             <div class="p-2 flex flex-row flex-vertical-center mb-2">
                                 <div class="flex mt-3 w-30">
                                     <div class="flex-basis-40 text-right flex-vertical-center">
-                                        Number:
+                                        <label for="LoanNumber" class="form-label">Number:</label>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <span>
-                                            <input class="textBox_Left w-40" data-val="true"
+                                        <span class="input-group">
+                                            <span class="input-icon"><i class="bi bi-hash"></i></span>
+                                            <input class="textBox_Left w-40 enhanced-input" data-val="true"
                                                 data-val-length="  Please enter minimum 3 characters."
                                                 data-val-length-max="15" data-val-length-min="3"
                                                 data-val-requiredif="Loan Number is required."
                                                 data-val-requiredif-comparisons="EqualTo"
                                                 data-val-requiredif-otherproperties="IsLoanIndentifierSelected"
                                                 data-val-requiredif-values="True" id="LoanNumber" name="LoanNumber"
-                                                type="text" value="">
+                                                type="text" value="" placeholder="Enter loan number">
                                             <script
                                                 type="text/javascript">NumericHelper({ maxLength: '15', precision: '0', isInteger: 'True' == 'True', element: 'LoanNumber' });</script>
                                         </span>
@@ -201,36 +690,42 @@
                                 </div>
                                 <div class="flex mt-3 w-30">
                                     <div class="flex-basis-40 text-right flex-vertical-center">
-                                        Type:
+                                        <label for="LoanTypeCd" class="form-label">Type:</label>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <select class="dropDown w-40" id="LoanTypeCd" name="LoanTypeCd">
-                                            <option value="Servicer">Servicer</option>
-                                            <option value="Investor">Investor</option>
-                                        </select>
+                                        <div class="select-wrapper">
+                                            <select class="dropDown w-40 enhanced-select" id="LoanTypeCd" name="LoanTypeCd">
+                                                <option value="Servicer">Servicer</option>
+                                                <option value="Investor">Investor</option>
+                                            </select>
+                                            <span class="select-arrow"><i class="bi bi-chevron-down"></i></span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="flex mt-3 w-30 flex-vertical-center">
                                     <div class="flex-basis-40 text-right">
-                                        Exact Search:
+                                        <label for="IsExactSearch" class="form-label">Exact Search:</label>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <input checked="checked" data-val="true"
-                                            data-val-required="The Exact Search field is required." id="IsExactSearch"
-                                            name="IsExactSearch" type="checkbox" value="true"><input
-                                            name="IsExactSearch" type="hidden" value="false">
+                                        <div class="toggle-switch">
+                                            <input checked="checked" data-val="true"
+                                                data-val-required="The Exact Search field is required." id="IsExactSearch"
+                                                name="IsExactSearch" type="checkbox" value="true" class="toggle-input">
+                                            <label for="IsExactSearch" class="toggle-label"></label>
+                                            <input name="IsExactSearch" type="hidden" value="false">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div id="adv-search" class="hide mt-3">
+                        <div id="adv-search" class="hide mt-3 animate__animated animate__fadeIn">
                             <div class="panel">
                                 <div class="heading">
                                     <div class="flex flex-row flex-space-between flex-vertical-center">
                                         <span class="medium bold"><i
                                                 class="bi bi-people-fill large blue mr-2"></i>Borrower
                                             Identifiers</span>
-                                        <span class="self-right"><button type="button" class="linkbutton"
+                                        <span class="self-right"><button type="button" class="linkbutton search-toggle-btn"
                                                 id="simpleSearch"><i class="bi bi-search big mr-2"></i>Simple
                                                 Search</button></span>
                                     </div>
@@ -238,26 +733,30 @@
                                 <div class="p-2 flex flex-row flex-vertical-center mb-2 w-100">
                                     <div class="flex mt-3 w-25">
                                         <div class="flex-basis-40 text-right flex-vertical-center">
-                                            First Name:
+                                            <label for="FirstName" class="form-label">First Name:</label>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <input class="textBox_Left w-40" data-val="true"
-                                                data-val-length="  Please enter minimum 3 characters."
-                                                data-val-length-max="32" data-val-length-min="3"
-                                                data-val-requiredifnotempty="First Name is required."
-                                                data-val-requiredifnotempty-dependentproperty="LastName" id="FirstName"
-                                                maxlength="32" name="FirstName" type="text" value="">
-                                            <div class="field-validation-valid error-field-message ml-2"
-                                                data-valmsg-for="FirstName" data-valmsg-replace="true"></div>
+                                            <div class="input-group">
+                                                <span class="input-icon"><i class="bi bi-person"></i></span>
+                                                <input class="textBox_Left w-40 enhanced-input" data-val="true"
+                                                    data-val-length="  Please enter minimum 3 characters."
+                                                    data-val-length-max="32" data-val-length-min="3"
+                                                    data-val-requiredifnotempty="First Name is required."
+                                                    data-val-requiredifnotempty-dependentproperty="LastName" id="FirstName"
+                                                    maxlength="32" name="FirstName" type="text" value="" placeholder="Enter first name">
+                                                <div class="field-validation-valid error-field-message ml-2"
+                                                    data-valmsg-for="FirstName" data-valmsg-replace="true"></div>
+                                            </div>
                                         </div>
-
                                     </div>
                                     <div class="flex mt-3 w-25">
                                         <div class="flex-basis-40 text-right flex-vertical-center">
-                                            Last Name:
+                                            <label for="LastName" class="form-label">Last Name:</label>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <input class="textBox_Left w-40" data-val="true"
+                                            <div class="input-group">
+                                                <span class="input-icon"><i class="bi bi-person-fill"></i></span>
+                                                <input class="textBox_Left w-40" data-val="true"
                                                 data-val-length="  Please enter minimum 3 characters."
                                                 data-val-length-max="32" data-val-length-min="3"
                                                 data-val-requiredifnotempty="Last Name is required."
@@ -1092,6 +1591,432 @@
 
 
     <script src="./Loan_Ingestion.js"></script>
+    
+    <!-- Enhanced JavaScript functionality -->
+    <script>
+        $(document).ready(function() {
+            // Add smooth animations and transitions
+            $('.panel').addClass('animate__animated animate__fadeIn');
+            
+            // Enhance form interactions
+            $('input, select').on('focus', function() {
+                $(this).closest('.flex').addClass('highlight-input');
+                
+                // Add floating label effect
+                if ($(this).prev('.input-icon').length) {
+                    $(this).prev('.input-icon').addClass('active-icon');
+                }
+            }).on('blur', function() {
+                $(this).closest('.flex').removeClass('highlight-input');
+                
+                // Remove floating label effect if empty
+                if ($(this).prev('.input-icon').length && !$(this).val()) {
+                    $(this).prev('.input-icon').removeClass('active-icon');
+                }
+            });
+            
+            // Enhance buttons with hover effects
+            $('.linkbutton, button').on('mouseenter', function() {
+                $(this).addClass('button-hover');
+            }).on('mouseleave', function() {
+                $(this).removeClass('button-hover');
+            });
+            
+            // Add tooltip functionality
+            $('[title]').tooltip({
+                position: { my: "left+15 center", at: "right center" }
+            });
+            
+            // Enhance grid-loan-anchor click effect
+            $('.grid-loan-anchor').on('click', function() {
+                $(this).addClass('clicked');
+                setTimeout(() => {
+                    $(this).removeClass('clicked');
+                }, 300);
+            });
+            
+            // Add form validation visual feedback
+            $('#search-loan-form input').on('invalid', function() {
+                $(this).addClass('input-error');
+                $(this).closest('.flex').addClass('has-error');
+                
+                // Show validation message with animation
+                const errorMsg = $(this).siblings('.error-field-message');
+                if (errorMsg.length) {
+                    errorMsg.addClass('animate__animated animate__shakeX');
+                    setTimeout(() => {
+                        errorMsg.removeClass('animate__animated animate__shakeX');
+                    }, 1000);
+                }
+            }).on('input', function() {
+                $(this).removeClass('input-error');
+                $(this).closest('.flex').removeClass('has-error');
+            });
+            
+            // Toggle between simple and advanced search
+            $('#advSearch').on('click', function() {
+                $('#simple-search').slideUp(300, function() {
+                    $('#adv-search').slideDown(300);
+                });
+                $('#IsLoanIndentifierSelected').val('false');
+            });
+            
+            $('#simpleSearch').on('click', function() {
+                $('#adv-search').slideUp(300, function() {
+                    $('#simple-search').slideDown(300);
+                });
+                $('#IsLoanIndentifierSelected').val('true');
+            });
+            
+            // Add responsive menu toggle for mobile
+            $('<button id="mobile-menu-toggle" class="d-md-none"><i class="bi bi-list"></i></button>').insertBefore('#navMainMenu');
+            $('#mobile-menu-toggle').on('click', function() {
+                $('#navMainMenu').toggleClass('show-mobile-menu');
+                
+                // Add animation to menu items
+                if ($('#navMainMenu').hasClass('show-mobile-menu')) {
+                    $('#navMainMenu li a').each(function(index) {
+                        $(this).css({
+                            'animation': 'slideIn 0.3s forwards',
+                            'animation-delay': (index * 0.1) + 's'
+                        });
+                    });
+                } else {
+                    $('#navMainMenu li a').css({
+                        'animation': 'none',
+                        'opacity': 1
+                    });
+                }
+            });
+            
+            // Add scroll to top button
+            $('<button id="scroll-to-top" class="scroll-top-btn"><i class="bi bi-arrow-up-circle-fill"></i></button>').appendTo('body');
+            $(window).on('scroll', function() {
+                if ($(this).scrollTop() > 300) {
+                    $('#scroll-to-top').fadeIn();
+                } else {
+                    $('#scroll-to-top').fadeOut();
+                }
+            });
+            $('#scroll-to-top').on('click', function() {
+                $('html, body').animate({scrollTop: 0}, 500);
+                return false;
+            });
+            
+            // Add input mask for formatted inputs
+            if ($.fn.mask) {
+                $('#SSNNumber').mask('999-99-9999');
+                $('#ZipCode').mask('99999-9999');
+            }
+            
+            // Add auto-complete functionality for address fields
+            if ($.fn.autocomplete) {
+                $('#PropertyStreetAddressLine1').autocomplete({
+                    source: function(request, response) {
+                        // This would typically call an API for address suggestions
+                        // For demo purposes, we'll use a static list
+                        const addresses = [
+                            "123 Main St", 
+                            "456 Oak Ave", 
+                            "789 Pine Blvd",
+                            "101 Maple Dr",
+                            "202 Elm St"
+                        ];
+                        
+                        const matches = addresses.filter(address => 
+                            address.toLowerCase().indexOf(request.term.toLowerCase()) !== -1
+                        );
+                        
+                        response(matches);
+                    },
+                    minLength: 3
+                });
+            }
+            
+            // Add animation for search results
+            $('.grid-loan-anchor').closest('tr').addClass('animate__animated animate__fadeIn');
+            
+            // Add keyboard navigation for form fields
+            $('input, select').on('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const inputs = $('input:visible, select:visible');
+                    const idx = inputs.index(this);
+                    if (idx === inputs.length - 1) {
+                        // If it's the last input, submit the form
+                        $('#search-loan-form').submit();
+                    } else {
+                        // Otherwise focus the next input
+                        inputs[idx + 1].focus();
+                    }
+                }
+            });
+        });
+        
+        // Add keyframe animation for menu items
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes slideIn {
+                from { opacity: 0; transform: translateX(20px); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+            
+            .active-icon {
+                color: var(--primary-color) !important;
+                transform: scale(1.2);
+                transition: all 0.3s ease;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+    
+    <!-- Add Animate.css for smooth animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    
+    <!-- Additional custom styles -->
+    <style>
+        /* Enhanced input styles */
+        .highlight-input {
+            background-color: rgba(13, 110, 253, 0.05);
+            transition: background-color 0.3s ease;
+        }
+        
+        /* Button hover effect */
+        .button-hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Click effect for grid items */
+        .grid-loan-anchor.clicked {
+            transform: scale(0.95);
+        }
+        
+        /* Error styling */
+        .input-error {
+            border-color: var(--danger-color) !important;
+            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        .has-error {
+            color: var(--danger-color);
+        }
+        
+        /* Mobile menu */
+        #mobile-menu-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            #mobile-menu-toggle {
+                display: block;
+            }
+            
+            #navMainMenu {
+                flex-direction: column;
+                position: fixed;
+                top: 0;
+                right: -250px;
+                width: 250px;
+                height: 100vh;
+                background-color: var(--primary-color);
+                z-index: 999;
+                transition: right 0.3s ease;
+                overflow-y: auto;
+                padding-top: 60px;
+            }
+            
+            #navMainMenu.show-mobile-menu {
+                right: 0;
+            }
+            
+            #navMainMenu td {
+                display: block;
+                width: 100%;
+            }
+        }
+        
+        /* Scroll to top button */
+        .scroll-top-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: none;
+            z-index: 999;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .scroll-top-btn:hover {
+            background-color: #0b5ed7;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Enhanced table styles */
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        table tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        
+        /* Enhanced form elements */
+        .enhanced-input {
+            padding-left: 35px !important;
+            transition: all 0.3s ease;
+            border-radius: 6px !important;
+        }
+        
+        .enhanced-input:focus {
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25) !important;
+        }
+        
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 10px;
+            color: var(--secondary-color);
+            z-index: 10;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Enhanced select */
+        .select-wrapper {
+            position: relative;
+        }
+        
+        .enhanced-select {
+            appearance: none;
+            padding-right: 30px !important;
+            border-radius: 6px !important;
+        }
+        
+        .select-arrow {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--secondary-color);
+        }
+        
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .toggle-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-label {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .toggle-label:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        .toggle-input:checked + .toggle-label {
+            background-color: var(--primary-color);
+        }
+        
+        .toggle-input:focus + .toggle-label {
+            box-shadow: 0 0 1px var(--primary-color);
+        }
+        
+        .toggle-input:checked + .toggle-label:before {
+            transform: translateX(30px);
+        }
+        
+        /* Search toggle button */
+        .search-toggle-btn {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .search-toggle-btn:after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: -100%;
+            background-color: rgba(13, 110, 253, 0.1);
+            transition: all 0.3s ease;
+            z-index: -1;
+            border-radius: 4px;
+        }
+        
+        .search-toggle-btn:hover:after {
+            left: 0;
+        }
+        
+        /* Loading animation enhancement */
+        #preloaderImg {
+            width: 60px;
+            height: 60px;
+            border-width: 6px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </body>
 
 </html>
