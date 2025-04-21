@@ -975,7 +975,7 @@
                                                     Servicer:
                                                 </div>
                                                 <div class="ml-2">
-                                                    0000000976
+                                                    0000000970
                                                 </div>
                                             </div>
                                             <div class="flex">
@@ -983,7 +983,7 @@
                                                     Investor:
                                                 </div>
                                                 <div class="ml-2">
-                                                    0100000976
+                                                    0000002261
                                                 </div>
                                             </div>
                                         </td>
@@ -1060,7 +1060,7 @@
                                                     Investor:
                                                 </div>
                                                 <div class="ml-2">
-                                                    0100001081
+                                                    0100001082
                                                 </div>
                                             </div>
                                         </td>
@@ -1298,6 +1298,72 @@
             let validator = $("#search-loan-form");
             let saveUrl = '/LoanViews/LoanInfo/SearchLoan/SaveSearchLoan?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542';
 
+            // Define displayValidationSummary function
+            function displayValidationSummary(summaryId, messages) {
+                const summary = $(`#${summaryId}`);
+                const list = $(`#${summaryId} ul`);
+                
+                if (!summary.length || !list.length) {
+                    console.error(`Validation summary element with id ${summaryId} not found`);
+                    return;
+                }
+
+                list.empty();
+                summary.removeClass('hide');
+
+                if (Array.isArray(messages)) {
+                    messages.forEach(msg => {
+                        const item = document.createElement('li');
+                        item.textContent = msg;
+                        list.append(item);
+                    });
+                } else if (typeof messages === 'string') {
+                    const item = document.createElement('li');
+                    item.textContent = messages;
+                    list.append(item);
+                }
+            }
+
+            // Define __Ajax object
+            const enhancedAjax = {
+                Get: function(options) {
+                    $.ajax({
+                        url: options.url,
+                        type: 'GET',
+                        data: options.data,
+                        success: function(response) {
+                            if (options.callBack) {
+                                options.callBack(response);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            if (options.errorSummaryId) {
+                                displayValidationSummary(options.errorSummaryId, [error]);
+                            }
+                        }
+                    });
+                },
+                Post: function(options) {
+                    $.ajax({
+                        url: options.url,
+                        type: 'POST',
+                        data: options.data,
+                        success: function(response) {
+                            if (options.callBack) {
+                                options.callBack(response);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            if (options.errorSummaryId) {
+                                displayValidationSummary(options.errorSummaryId, [error]);
+                            }
+                        }
+                    });
+                }
+            };
+
+            window.__Ajax = enhancedAjax;
+
             const searchData = (function () {
 
                 function initUI() {
@@ -1446,82 +1512,6 @@
                     //     }
                     // });
                     $('#searchGrid').show();
-                }
-
-                function displayValidationSummary(summaryId, summaryMsgs) {
-                    const summary = $(`#${summaryId}`);
-                    const list = $(`#${summaryId} ul`);
-                    list.empty();
-
-                    const listElem = list[0];
-
-                    summaryMsgs.forEach(msg => {
-                        const item = document.createElement('li');
-                        item.innerText = msg;
-                        listElem.appendChild(item);
-                    });
-                    // $('#searchGrid').hide();
-                    summary.removeClass('hide');
-                }
-
-                $.validator.unobtrusive.adapters.add('requiredifnotempty', ['dependentproperty'], function (options) {
-                    let params = {
-                        dependentproperty: options.params.dependentproperty,
-                    };
-                    options.rules['requiredifnotempty'] = params;
-                    options.messages['requiredifnotempty'] = options.message;
-                });
-
-                $.validator.addMethod("requiredifnotempty", function (value, element, params) {
-                    let l_dependentPropertyValue = $('#' + params.dependentproperty).val()
-                    if (l_dependentPropertyValue.trim() !== '' && $.trim(value) === '') {
-                        return false;
-                    }
-                    return true;
-                });
-
-                $.validator.unobtrusive.adapters.add('requiredif', ['otherproperties', 'values', 'comparisons'], function (options) {
-                    let params = {
-                        otherproperties: options.params.otherproperties,
-                        values: options.params.values,
-                        comparisons: options.params.comparisons
-                    };
-                    options.rules['requiredif'] = params;
-                    options.messages['requiredif'] = options.message;
-                });
-
-                $.validator.addMethod('requiredif', function (value, element, params) {
-                    let otherProperties = params.otherproperties.split(',');
-                    let values = params.values.split(',');
-                    let comparisons = params.comparisons.split(',');
-
-                    for (let l_index = 0; l_index < otherProperties.length; l_index++) {
-                        let otherProperty = $('[name="' + otherProperties[l_index] + '"]');
-                        let otherValue = otherProperty.val();
-                        let comparison = comparisons[l_index];
-                        if (compareValues(otherValue, values[l_index], comparison)) {
-                            let Loanno = $.trim($('#LoanNumber').val());
-                            if (Loanno.length >= 3) {
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                });
-
-                function compareValues(value1, value2, comparison) {
-                    switch (comparison) {
-                        case 'EqualTo':
-                            return (value1?.toLowerCase() ?? '') === (value2?.toLowerCase() ?? '');
-                        case 'NotEqualTo':
-                            return value1 != value2;
-                        case 'GreaterThan':
-                            return parseFloat(value1) > parseFloat(value2);
-                        case 'LessThan':
-                            return parseFloat(value1) < parseFloat(value2);
-                        default:
-                            return false;
-                    }
                 }
 
                 function validateSearchLoan() {
