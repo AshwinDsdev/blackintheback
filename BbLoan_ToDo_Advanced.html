@@ -1,0 +1,2127 @@
+//bitb todolist Advance search filter
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" class="">
+
+<head>
+    <script type="text/javascript">
+        (function () {
+            window.NREUM || (NREUM = {});
+            NREUM.info = {
+                "beacon": "bam.nr-data.net",
+                "errorBeacon": "bam.nr-data.net",
+                "licenseKey": "1d89535bbf",
+                "applicationID": "18150232",
+                "transactionName": "ZQcEZhYHDxBUV0JcW1xNK2QnSTUMcVt6XEdGIQlcEBQOD1lRRBp9XAYDSg==",
+                "queueTime": 15,
+                "applicationTime": 291,
+                "agent": "",
+                "atts": ""
+            };
+
+            (window.NREUM || (NREUM = {})).init = {
+                ajax: {
+                    deny_list: ["bam.nr-data.net"]
+                }
+            };
+
+            (window.NREUM || (NREUM = {})).loader_config = {
+                licenseKey: "1d89535bbf",
+                applicationID: "18150232"
+            };
+
+            /*! For license information please see nr-loader-rum-1.286.0.min.js.LICENSE.txt */
+            (function () {
+                var nrModule = (function () {
+                    var e, t, r = {
+                        8122: function (e, t, r) {
+                            "use strict";
+                            r.d(t, { a: function () { return i; } });
+                            var n = r(944);
+                            function i(e, t) {
+                                try {
+                                    if (!e || "object" != typeof e) return (0, n.R)(3);
+                                    if (!t || "object" != typeof t) return (0, n.R)(4);
+                                    var r = Object.create(Object.getPrototypeOf(t), Object.getOwnPropertyDescriptors(t));
+                                    var o = 0 === Object.keys(r).length ? e : r;
+                                    for (var a in o) {
+                                        if (void 0 !== e[a]) {
+                                            try {
+                                                if (null === e[a]) {
+                                                    r[a] = null;
+                                                    continue;
+                                                }
+                                                if (Array.isArray(e[a]) && Array.isArray(t[a])) {
+                                                    r[a] = Array.from(new Set([...e[a], ...t[a]]));
+                                                } else if ("object" == typeof e[a] && "object" == typeof t[a]) {
+                                                    r[a] = i(e[a], t[a]);
+                                                } else {
+                                                    r[a] = e[a];
+                                                }
+                                            } catch (e) {
+                                                (0, n.R)(1, e);
+                                            }
+                                        }
+                                    }
+                                    return r;
+                                } catch (e) {
+                                    (0, n.R)(2, e);
+                                }
+                            }
+                        }
+                    };
+                    return { e: e, t: t, r: r };
+                })();
+
+                // Rest of the New Relic script with proper scoping
+                // ... existing code ...
+            })();
+        })();
+    </script>
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="/CssFiles/jquery-ui-1.12.1.custom.css">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/CssFiles/StyleSheet2.css">
+    <!--[if IE 7]><link href="/CssFiles/StyleSheet2_ie7.css" rel="stylesheet" type="text/css" /><![endif]-->
+    <link rel="stylesheet" href="/CssFiles/StyleSheet_NextGen.css">
+    <link rel="stylesheet" href="/CssFiles/ConfirmBox.css">
+    <link href="/CssFiles/bootstrap-icons.css" rel="stylesheet" type="text/css">
+
+    <!-- jQuery and other scripts -->
+    <script src="/JScriptSource/jquery/jquery.min.js" type="text/javascript"></script>
+    <script src="/JScriptSource/jquery/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="/JScriptSource/jquery/jquery.validate.min.js"></script>
+    <script src="/JScriptSource/jquery/jquery.validate.unobtrusive.min.js"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom Scripts -->
+    <script src="/JScriptSource/htmMainMenu1.js" type="text/javascript"></script>
+    <script src="/JScriptSource/bitbcommon.js" type="text/javascript"></script>
+    <script src="/JScriptSource/bitbcommon_NextGen.js" type="text/javascript"></script>
+    <script src="/JScriptSource/ConfirmBox.js" type="text/javascript"></script>
+
+    <title>BackInTheBlack® - Workflow - ToDo List</title>
+    <style>
+        /* Existing styles */
+        .pageBody {
+            width: 100% !important;
+        }
+
+        .normal-font {
+            font-weight: normal !important;
+        }
+
+        .modalProcessing {
+            border: solid 2px #000000 !important;
+            border-radius: 0 !important;
+            z-index: 9999;
+        }
+
+        .modalProcessing.ui-widget.ui-widget-content .ui-dialog-titlebar {
+            display: none !important;
+        }
+
+        .custom-overlay {
+            opacity: 0.9 !important;
+        }
+
+        #divLoading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+        }
+
+        #divLoading #preloaderOverlay {
+            background-color: #aaaaaa;
+            opacity: 0.9;
+            height: 100%;
+            width: 100%;
+        }
+
+        #divLoading #preloaderContainer {
+            position: absolute;
+            padding: .25rem 1.5rem;
+            left: 42%;
+            top: 47%;
+            border: 2px solid;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #fff;
+        }
+
+        #divLoading #preloaderContainer p {
+            margin-bottom: 0;
+            font-weight: bold;
+        }
+
+        #divLoading #preloaderContainer #preloaderImg {
+            width: 200px;
+            height: 30px;
+            background-image: url('/Images/clock.gif');
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .localField {
+            padding: 1px 4px 1px 4px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        .localFieldLabel {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        label {
+            font-size: unset !important;
+        }
+
+        /* New enhanced styles */
+        .bb-tabs {
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .bb-tabs .tab-head {
+            transition: all 0.3s ease;
+        }
+
+        .bb-tabs .tab-head:hover {
+            background: #e9ecef;
+        }
+
+        .bb-tabs .tab-head.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .content-header {
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .content-details {
+            background: white;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropDown,
+        .textBox_Left {
+            transition: all 0.3s ease;
+            border: 1px solid #ced4da;
+        }
+
+        .dropDown:hover,
+        .textBox_Left:hover {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+        }
+
+        .linkbutton {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .linkbutton:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .timer-cntdown {
+            background: linear-gradient(to right, #b8e2f2, #a1d4e8);
+            border-radius: 4px;
+            padding: 8px 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .adv-sort table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .adv-sort th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .adv-sort td {
+            padding: 12px;
+        }
+
+        .adv-sort input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        .section-header {
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .section-details {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .field-value ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .field-value ul.list-tpt li:not(:first-of-type) {
+            border-top: 1px solid #e9ecef;
+            padding-top: 8px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .content-header {
+                flex-direction: column;
+            }
+
+            .section-details {
+                flex-direction: column;
+            }
+
+            .adv-sort table {
+                width: 100%;
+            }
+        }
+    </style>
+    <script type="text/javascript">
+        function beginRequest(sender, args) {
+            ShowProcessing();
+        }
+
+        function endRequest(sender, args) {
+            HideProcessing();
+        }
+
+        function ShowProcessing() {
+            $("#divLoading").show();
+        }
+
+        function HideProcessing() {
+            $("#divLoading").hide();
+        }
+
+        function ShowImage() {
+            var imgProgressBar = document.getElementById('imgProcessing');
+            if (imgProgressBar) {
+                imgProgressBar.src = '/Images/clock.gif';
+            }
+        }
+
+        $(document).ready(function () {
+            setTimeout(HideProcessing, 1000);
+            
+            // Initialize table display
+            const todoTable = document.getElementById('todoTable');
+            const noDataMsg = document.getElementById('nodata');
+            
+            if (todoTable && noDataMsg) {
+                todoTable.style.display = 'block';
+                noDataMsg.style.display = 'none';
+            }
+        })
+    </script>
+    <style type="text/css">
+        .fancybox-margin {
+            margin-right: 0px;
+        }
+    </style>
+</head>
+
+<body style="min-width: 800px;">
+    <form id="__AjaxAntiForgeryForm" method="post"><input name="__RequestVerificationToken" type="hidden"
+            value="U_sdSm7ZTe9jsq2kgk1VwOZ9E1_oN6kdRnsgS039FfUHeF7u3GpH-AanTB9l7SvwczDQyVDZ-FUsms5DtFZTYJh1goo1"></form>
+    <script language="javascript" src="/JScriptSource/AntiForgeryTokenMgmt.js" type="text/javascript"></script>
+    <header>
+
+        <table width="100%">
+            <tbody>
+                <tr>
+                    <td style="text-align: left;"><img src="/Images/bitblogo.png" alt="BackInTheBlack®"></td>
+                </tr>
+                <tr>
+                    <td>
+                        <hr style="margin: 0px; padding: 0px;">
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div id="divMainMenu">
+            <table id="navMainMenu">
+                <tbody>
+                    <tr>
+                        <td>
+                            <li>
+                                <a id="nav_SITE_SEARCHLOANS"
+                                    href="javascript:NavMenuPreventDoubleClick('/LoanViews/LoanInfo/SearchLoan?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542&amp;IntType=')">Search
+                                    Loans</a>
+                            </li>
+                        </td>
+                        <td>
+                            <li>
+                                <a id="nav_SITE_TODOLIST"
+                                    href="javascript:NavMenuPreventDoubleClick('/LoanActivity/Workflow/TodoList?AppSessionID=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542')">ToDo
+                                    List</a>
+                            </li>
+                        </td>
+                        <td>
+                            <li>
+                                <a id="nav_SITE_BULLBOARD"
+                                    href="javascript:NavMenuPreventDoubleClick('/AppManagement/BulletinBoard?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542')">Bulletin
+                                    Board</a>
+                            </li>
+                        </td>
+                        <td class="logout">
+                            <li>
+                                <table style="float: right;">
+                                    <tbody>
+                                        <tr>
+                                            <td><a href="/Login/Account/Logout">Logout</a></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </li>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <script
+            [%nonce%]="">$(document).ready(function () { __ngMenuEvent.attach('fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542') });</script>
+        <table class="pageTitle mt-3" align="center">
+            <tbody>
+                <tr>
+                    <td>&nbsp;ToDo List</td>
+                </tr>
+            </tbody>
+        </table>
+    </header>
+    <table class="pageBody" align="center">
+        <tbody>
+            <tr>
+                <td width="100%" valign="top">
+                    <section class="content-wrapper main-content clear-fix">
+
+
+                        <link href="/CssFiles/jquery.fancybox.css" rel="stylesheet">
+                        <style type="text/css">
+                            [data-columns] {
+                                display: grid;
+                                grid-row-gap: 0.5rem;
+                                grid-column-gap: 0;
+                                padding: 0;
+                                align-items: baseline;
+                            }
+
+                            [data-columns="2"] {
+                                grid-template-columns: auto 1fr;
+                            }
+
+                            [data-advanced] {
+                                display: grid;
+                                grid-row-gap: 0.5rem;
+                                grid-column-gap: 0;
+                                padding: 0;
+                                align-items: baseline;
+                            }
+
+                            [data-advanced="2"] {
+                                grid-template-columns: 1fr 1fr;
+                            }
+
+                            [data-advanced="2"]>[data-advanced="2"] {
+                                column-gap: 0.5rem;
+                                grid-template-columns: auto 1fr;
+                            }
+
+                            [data-advanced="2"] label {
+                                margin: unset;
+                                font-size: unset;
+                            }
+
+                            [data-advanced="2"] input[type=radio] {
+                                margin-top: unset;
+                            }
+
+
+                            .slide-up {
+                                transition: max-height 0.2s ease-in-out;
+                                max-height: 0;
+                                overflow-y: auto;
+                            }
+
+                            .timer-cntdown {
+                                background-color: #B8E2F2;
+                                border-radius: 4px;
+                                padding: 3px 10px;
+                            }
+
+                            input,
+                            select,
+                            textarea {
+                                border-radius: 5px;
+                                padding: 4px;
+                                border: 1px solid #ced4da;
+                            }
+
+                            .adv-sort .rounded {
+                                border-radius: 5px;
+                            }
+
+                            .content-header {
+                                padding: 8px 4px;
+                                font-weight: bold;
+                                background-color: #e0e0e0;
+                            }
+
+                            .content-details {
+                                padding: 4px;
+                            }
+
+                            .section-header {
+                                padding: 4px;
+                                font-variant: small-caps;
+                                font-style: oblique;
+                                font-weight: bolder;
+                                background-color: rgba(151, 151, 151, 0.125);
+                            }
+
+                            .section-details {
+                                display: flex;
+                                flex-direction: row;
+                                column-gap: 48px;
+                                padding: 8px 4px;
+                            }
+
+                            .section-details.scheduled {
+                                display: grid;
+                                grid-template-columns: repeat(2, max-content);
+                                grid-row-gap: 8px;
+                            }
+
+                            .section-details.scheduled th,
+                            .section-details.scheduled td {
+                                padding: 4px;
+                            }
+
+                            .field-value ul {
+                                list-style: none;
+                                padding: unset !important;
+                                margin: unset !important;
+                            }
+
+                            .field-value ul.list-tpt li:not(:first-of-type),
+                            .field-value ul.list-tpt li:not(:only-child) {
+                                padding-top: 4px;
+                                border-top: 1px solid #e0e0e0;
+                            }
+
+                            .mh-max {
+                                max-height: max-content;
+                            }
+                        </style>
+
+
+                        <div class="bb-tabs border-bottom-0 todo-list">
+                            <ul>
+                                <li class="tab-head queues active current-view" data-tab="queues">
+                                    <i class="bi bi-stack bb-fs-2 mr-3" data-tab="dispatch"></i>
+                                    <span>Queues</span>
+                                </li>
+
+                            </ul>
+                        </div>
+
+                        <div class="tab-details">
+                            <div class="bb-tab-content queues active">
+
+
+
+                                <div class="flex flex-column collapsible-container shadow-small my-2">
+                                    <div class="content-header flex flex-row flex-space-between border">
+                                        <span>Filter/Sort Criteria</span>
+                                        <div class="collapse-action">
+                                            <i class="bi bi-caret-up-fill bb-fs-2 cursor-pointer"></i>
+                                        </div>
+                                    </div>
+                                    <form
+                                        action="/LoanActivity/Workflow/ToDoList?AppSessionId=fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542"
+                                        class="content-details border border-top-0" id="todo-filter" method="post"
+                                        novalidate="novalidate"><input name="__RequestVerificationToken" type="hidden"
+                                            value="wqYvaFMcut7q7dY2tpJ7XfXpB6ejJebEMtxJvYeuNWZs9oGpbbbmjpBVQLXKbIOsRVK3B8UtzdAldx0Pr_vDdZJ-FkQ1">
+                                        <div id="divFilter">
+                                            <div data-columns="2">
+                                                <span class="p-2">
+                                                    <label class="mx-0" for="Filter_QueueType">Queue Type</label>:
+                                                </span>
+                                                <span class="p-2">
+                                                    <select class="dropDown" id="Filter_QueueType"
+                                                        name="Filter.QueueType">
+                                                        <option value=""></option>
+                                                        <option value="MYLOANS">-- My Loans --</option>
+                                                        <option value="MYQUEUES">-- My Work Queues --</option>
+                                                        <option value="ALLQUEUES">-- All Work Queues --</option>
+                                                        <option value="WORKBASKET">-- Workbasket --</option>
+                                                    </select>
+                                                </span>
+
+                                                <span class="p-2">
+                                                    <label class="mx-0" for="Filter_QueueTitle">Queue Title</label>:
+                                                </span>
+                                                <span class="p-2 flex flex-row flex-space-between">
+                                                    <select class="dropDown" id="Filter_QueueTitle"
+                                                        name="Filter.QueueTitle">
+                                                    </select>
+                                                    <input data-val="true"
+                                                        data-val-number="The field PageNumber must be a number."
+                                                        data-val-required="The PageNumber field is required."
+                                                        id="Filter_PageNumber" name="Filter.PageNumber" type="hidden"
+                                                        value="1">
+                                                    <input data-val="true"
+                                                        data-val-number="The field PageSize must be a number."
+                                                        data-val-required="The PageSize field is required."
+                                                        id="Filter_PageSize" name="Filter.PageSize" type="hidden"
+                                                        value="50">
+
+                                                    <input data-val="true"
+                                                        data-val-required="The AdvOptions field is required."
+                                                        id="Filter_AdvOptions" name="Filter.AdvOptions" type="hidden"
+                                                        value="true">
+                                                    <input data-val="true"
+                                                        data-val-required="The OnlyPaging field is required."
+                                                        id="Filter_OnlyPaging" name="Filter.OnlyPaging" type="hidden"
+                                                        value="False">
+                                                    <input data-val="true"
+                                                        data-val-required="The Applying field is required."
+                                                        id="Filter_Applying" name="Filter.Applying" type="hidden"
+                                                        value="False">
+                                                </span>
+
+                                                <span class="p-2">
+                                                    <label for="Filter_Preset">Select Preset:</label>
+                                                </span>
+                                                <span class="p-2 flex flex-row flex-space-between">
+
+                                                    <select id="Filter_Preset" name="Filter.Preset"
+                                                        class="dropDown w-50 mw-fit">
+                                                        <option value="" selected="">
+                                                            -- None --
+                                                        </option>
+                                                    </select>
+
+                                                    <a href="#" class="cursor-pointer" id="filterOptions"
+                                                        data-advanced="Y">Simple Filter/Sort</a>
+                                                </span>
+                                            </div>
+
+                                            <hr>
+                                            <div id="advancedFilter">
+                                                <div class="slide-up mh-max">
+                                                    <div id="advFilterFields" data-advanced="2" class="ml-4">
+                                                        <div data-advanced="2" class="adv-filter">
+                                                            <h4>Advanced Filter</h4><span></span>
+                                                            <div><label for="Filter_TrackZone">Track Zone</label>:</div>
+                                                            <div>
+                                                                <select class="dropDown" id="Filter_TrackZone"
+                                                                    name="Filter.TrackZone">
+                                                                </select>
+                                                            </div>
+
+                                                            <div><label for="Filter_AgencyType">Agency Type</label>:
+                                                            </div>
+                                                            <div>
+                                                                <select class="dropDown" id="Filter_AgencyType"
+                                                                    name="Filter.AgencyType">
+                                                                </select>
+                                                            </div>
+
+                                                            <div><label for="Filter_StateCode">Property State</label>:
+                                                            </div>
+                                                            <div>
+                                                                <select class="dropDown" id="Filter_StateCode"
+                                                                    name="Filter.StateCode">
+                                                                </select>
+                                                            </div>
+
+                                                            <div class="stage-type hide"><label
+                                                                    for="Filter_StageType">Stage Type</label>:</div>
+                                                            <div class="stage-type hide">
+                                                                <select class="dropDown" id="Filter_StageType"
+                                                                    name="Filter.StageType">
+                                                                </select>
+                                                            </div>
+
+                                                            <div class="milestone-descr hide"><label
+                                                                    for="Filter_MilestoneDescr">Milestone
+                                                                    Description</label>:</div>
+                                                            <div class="milestone-descr hide">
+                                                                <select class="dropDown" id="Filter_MilestoneDescr"
+                                                                    name="Filter.MilestoneDescr">
+                                                                </select>
+                                                            </div>
+
+                                                            <div class="stage-descr"><label
+                                                                    for="Filter_StageDescr">Stage Description</label>:
+                                                            </div>
+                                                            <div class="stage-descr">
+                                                                <select class="dropDown" id="Filter_StageDescr"
+                                                                    name="Filter.StageDescr">
+                                                                </select>
+                                                            </div>
+
+                                                            <div><label for="Filter_StageStatus">Stage Status</label>:
+                                                            </div>
+                                                            <div>
+                                                                <select class="dropDown" id="Filter_StageStatus"
+                                                                    name="Filter.StageStatus">
+                                                                </select>
+                                                            </div>
+
+                                                            <div><label for="Filter_WorkoutDescr">Workout Type</label>:
+                                                            </div>
+                                                            <div>
+                                                                <select class="dropDown" id="Filter_WorkoutDescr"
+                                                                    name="Filter.WorkoutDescr">
+                                                                </select>
+                                                            </div>
+
+                                                            <div><label for="Filter_LoanNumber">Loan Number</label>:
+                                                            </div>
+                                                            <div class="flex flex-row flex-vertical-center">
+                                                                <input class="textBox_Left input" id="Filter_LoanNumber"
+                                                                    name="Filter.LoanNumber" type="text" value="">
+                                                                <input class="ml-3 mt-0 mb-0 input" data-val="true"
+                                                                    data-val-required="The Exact Search field is required."
+                                                                    id="Filter_LoanExactSearch"
+                                                                    name="Filter.LoanExactSearch" type="checkbox"
+                                                                    value="true"><input name="Filter.LoanExactSearch"
+                                                                    type="hidden" value="false">
+                                                                <label class="mb-0" for="Filter_LoanExactSearch">Exact
+                                                                    Search</label>
+                                                            </div>
+                                                            <div><label for="Filter_HideLockedLoans">Hide Locked
+                                                                    Loans</label>:</div>
+                                                            <div class="flex flex-row flex-vertical-center">
+                                                                <input class="ml-0 mt-0 mb-0 input" data-val="true"
+                                                                    data-val-required="The Hide Locked Loans field is required."
+                                                                    id="Filter_HideLockedLoans"
+                                                                    name="Filter.HideLockedLoans" type="checkbox"
+                                                                    value="true"><input name="Filter.HideLockedLoans"
+                                                                    type="hidden" value="false">
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="flex flex-column adv-sort">
+                                                            <table class="border-0 mw-fit new-ui-table">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th colspan="4"
+                                                                            class="border-bottom border-top-0">
+                                                                            <h4 class="m-0">Advanced Sort</h4>
+                                                                        </th>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th class="border-0"></th>
+                                                                        <th class="border-0">Sort On</th>
+                                                                        <th class="border-0">Order</th>
+                                                                        <th class="border-0">Unknowns</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr data-sortindex="1">
+                                                                        <td class="border-bottom-0">#1</td>
+                                                                        <td class="border-bottom-0">
+                                                                            <select class="dropDown sort-on w-100"
+                                                                                id="Filter_SortOne_SortOn"
+                                                                                name="Filter.SortOne.SortOn">
+                                                                                <option value="" selected=""></option>
+                                                                                <option value="AGENCYTYPE">Agency Type
+                                                                                </option>
+                                                                                <option value="DUEDATE">Due Date
+                                                                                </option>
+                                                                                <option value="FCLSALEDATE">FCL Sale
+                                                                                    Date</option>
+                                                                                <option value="FCLSTOPCODE">FCL Stop
+                                                                                    Code</option>
+                                                                                <option value="LOANNUMBER">Loan Number
+                                                                                </option>
+                                                                                <option value="PROPSTATE">Property State
+                                                                                </option>
+                                                                                <option value="SCHEDULEDATE">Scheduled
+                                                                                    Date</option>
+                                                                                <option value="STAGEDESC">Stage
+                                                                                    Description</option>
+                                                                                <option value="TARGETDATE">Target Date
+                                                                                </option>
+                                                                                <option value="TRACKZONE">Track Zone
+                                                                                </option>
+                                                                                <option value="WORKOUTTYPE">Workout Type
+                                                                                </option>
+                                                                            </select>
+                                                                        </td>
+                                                                        <td class="border-bottom-0">
+                                                                            <span
+                                                                                class="flex flex-row pr-2 py-2 rounded">
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        checked="checked"
+                                                                                        id="Filter_SortOne_SortOrder"
+                                                                                        name="Filter.SortOne.SortOrder"
+                                                                                        type="radio" value="ASC">
+                                                                                    Asc</label>
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        id="Filter_SortOne_SortOrder"
+                                                                                        name="Filter.SortOne.SortOrder"
+                                                                                        type="radio" value="DESC">
+                                                                                    Desc</label>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td class="border-bottom-0">
+                                                                            <span
+                                                                                class="ml-3 flex flex-row pr-2 py-2 rounded">
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        checked="checked"
+                                                                                        id="Filter_SortOne_NullOrder"
+                                                                                        name="Filter.SortOne.NullOrder"
+                                                                                        type="radio" value="F">
+                                                                                    First</label>
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        id="Filter_SortOne_NullOrder"
+                                                                                        name="Filter.SortOne.NullOrder"
+                                                                                        type="radio" value="L">
+                                                                                    Last</label>
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr data-sortindex="2">
+                                                                        <td class="border-bottom-0">#2</td>
+                                                                        <td class="border-bottom-0">
+                                                                            <select class="dropDown sort-on w-100"
+                                                                                id="Filter_SortTwo_SortOn"
+                                                                                name="Filter.SortTwo.SortOn">
+                                                                                <option value="" selected=""></option>
+                                                                                <option value="AGENCYTYPE">Agency Type
+                                                                                </option>
+                                                                                <option value="DUEDATE">Due Date
+                                                                                </option>
+                                                                                <option value="FCLSALEDATE">FCL Sale
+                                                                                    Date</option>
+                                                                                <option value="FCLSTOPCODE">FCL Stop
+                                                                                    Code</option>
+                                                                                <option value="LOANNUMBER">Loan Number
+                                                                                </option>
+                                                                                <option value="PROPSTATE">Property State
+                                                                                </option>
+                                                                                <option value="SCHEDULEDATE">Scheduled
+                                                                                    Date</option>
+                                                                                <option value="STAGEDESC">Stage
+                                                                                    Description</option>
+                                                                                <option value="TARGETDATE">Target Date
+                                                                                </option>
+                                                                                <option value="TRACKZONE">Track Zone
+                                                                                </option>
+                                                                                <option value="WORKOUTTYPE">Workout Type
+                                                                                </option>
+                                                                            </select>
+                                                                        </td>
+                                                                        <td class="border-bottom-0">
+                                                                            <span
+                                                                                class="flex flex-row pr-2 py-2 rounded">
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        checked="checked"
+                                                                                        id="Filter_SortTwo_SortOrder"
+                                                                                        name="Filter.SortTwo.SortOrder"
+                                                                                        type="radio" value="ASC">
+                                                                                    Asc</label>
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        id="Filter_SortTwo_SortOrder"
+                                                                                        name="Filter.SortTwo.SortOrder"
+                                                                                        type="radio" value="DESC">
+                                                                                    Desc</label>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td class="border-bottom-0">
+                                                                            <span
+                                                                                class="ml-3 flex flex-row pr-2 py-2 rounded">
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        checked="checked"
+                                                                                        id="Filter_SortTwo_NullOrder"
+                                                                                        name="Filter.SortTwo.NullOrder"
+                                                                                        type="radio" value="F">
+                                                                                    First</label>
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        id="Filter_SortTwo_NullOrder"
+                                                                                        name="Filter.SortTwo.NullOrder"
+                                                                                        type="radio" value="L">
+                                                                                    Last</label>
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr data-sortindex="3">
+                                                                        <td class="border-bottom-0">#3</td>
+                                                                        <td class="border-bottom-0">
+                                                                            <select class="dropDown sort-on w-100"
+                                                                                id="Filter_SortThree_SortOn"
+                                                                                name="Filter.SortThree.SortOn">
+                                                                                <option value="" selected=""></option>
+                                                                                <option value="AGENCYTYPE">Agency Type
+                                                                                </option>
+                                                                                <option value="DUEDATE">Due Date
+                                                                                </option>
+                                                                                <option value="FCLSALEDATE">FCL Sale
+                                                                                    Date</option>
+                                                                                <option value="FCLSTOPCODE">FCL Stop
+                                                                                    Code</option>
+                                                                                <option value="LOANNUMBER">Loan Number
+                                                                                </option>
+                                                                                <option value="PROPSTATE">Property State
+                                                                                </option>
+                                                                                <option value="SCHEDULEDATE">Scheduled
+                                                                                    Date</option>
+                                                                                <option value="STAGEDESC">Stage
+                                                                                    Description</option>
+                                                                                <option value="TARGETDATE">Target Date
+                                                                                </option>
+                                                                                <option value="TRACKZONE">Track Zone
+                                                                                </option>
+                                                                                <option value="WORKOUTTYPE">Workout Type
+                                                                                </option>
+                                                                            </select>
+                                                                        </td>
+                                                                        <td class="border-bottom-0">
+                                                                            <span
+                                                                                class="flex flex-row pr-2 py-2 rounded">
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        checked="checked"
+                                                                                        id="Filter_SortThree_SortOrder"
+                                                                                        name="Filter.SortThree.SortOrder"
+                                                                                        type="radio" value="ASC">
+                                                                                    Asc</label>
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        id="Filter_SortThree_SortOrder"
+                                                                                        name="Filter.SortThree.SortOrder"
+                                                                                        type="radio" value="DESC">
+                                                                                    Desc</label>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td class="border-bottom-0">
+                                                                            <span
+                                                                                class="ml-3 flex flex-row pr-2 py-2 rounded">
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        checked="checked"
+                                                                                        id="Filter_SortThree_NullOrder"
+                                                                                        name="Filter.SortThree.NullOrder"
+                                                                                        type="radio" value="F">
+                                                                                    First</label>
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        id="Filter_SortThree_NullOrder"
+                                                                                        name="Filter.SortThree.NullOrder"
+                                                                                        type="radio" value="L">
+                                                                                    Last</label>
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr data-sortindex="4">
+                                                                        <td class="border-bottom-0">#4</td>
+                                                                        <td>
+                                                                            <select class="dropDown sort-on w-100"
+                                                                                id="Filter_SortFour_SortOn"
+                                                                                name="Filter.SortFour.SortOn">
+                                                                                <option value="" selected=""></option>
+                                                                                <option value="AGENCYTYPE">Agency Type
+                                                                                </option>
+                                                                                <option value="DUEDATE">Due Date
+                                                                                </option>
+                                                                                <option value="FCLSALEDATE">FCL Sale
+                                                                                    Date</option>
+                                                                                <option value="FCLSTOPCODE">FCL Stop
+                                                                                    Code</option>
+                                                                                <option value="LOANNUMBER">Loan Number
+                                                                                </option>
+                                                                                <option value="PROPSTATE">Property State
+                                                                                </option>
+                                                                                <option value="SCHEDULEDATE">Scheduled
+                                                                                    Date</option>
+                                                                                <option value="STAGEDESC">Stage
+                                                                                    Description</option>
+                                                                                <option value="TARGETDATE">Target Date
+                                                                                </option>
+                                                                                <option value="TRACKZONE">Track Zone
+                                                                                </option>
+                                                                                <option value="WORKOUTTYPE">Workout Type
+                                                                                </option>
+                                                                            </select>
+                                                                        </td>
+                                                                        <td>
+                                                                            <span
+                                                                                class="flex flex-row pr-2 py-2 rounded">
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        checked="checked"
+                                                                                        id="Filter_SortFour_SortOrder"
+                                                                                        name="Filter.SortFour.SortOrder"
+                                                                                        type="radio" value="ASC">
+                                                                                    Asc</label>
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        id="Filter_SortFour_SortOrder"
+                                                                                        name="Filter.SortFour.SortOrder"
+                                                                                        type="radio" value="DESC">
+                                                                                    Desc</label>
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>
+                                                                            <span
+                                                                                class="ml-3 flex flex-row pr-2 py-2 rounded">
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        checked="checked"
+                                                                                        id="Filter_SortFour_NullOrder"
+                                                                                        name="Filter.SortFour.NullOrder"
+                                                                                        type="radio" value="F">
+                                                                                    First</label>
+                                                                                <label
+                                                                                    class="flex flex-row flex-vertical-center"><input
+                                                                                        id="Filter_SortFour_NullOrder"
+                                                                                        name="Filter.SortFour.NullOrder"
+                                                                                        type="radio" value="L">
+                                                                                    Last</label>
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                    <hr id="buttonSeperator">
+                                                </div>
+                                            </div>
+
+
+                                            <div class="px-2 flex flex-row flex-space-between">
+                                                <button type="button" class="linkbutton" id="applyFilter"><i
+                                                        class="bi bi-funnel mr-2"></i>Apply Filter</button>
+                                                <button type="button" class="linkbutton ms-2" id="toggleDataBtn" onclick="toggleTableDisplay(document.getElementById('todoTable').style.display === 'none')">
+                                                    <i class="bi bi-arrow-repeat mr-2"></i>Toggle Data Display
+                                                </button>
+                                                <text id="countdownmsg" hidden="" class="timer-cntdown">Page will
+                                                    refresh in <span id="countdown">60</span> seconds</text>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+
+                                <div class="mt-3">
+                                    <!-- ToDo Table with Dummy Data -->
+                                    <div id="todoTable" class="border shadow-regular py-3 px-4 bg-white">
+                                        <table class="table">
+                                            <thead class="bg-light">
+                                                <tr>
+                                                    <th class="text-left">Loan Number</th>
+                                                    <th class="text-left">Borrower Info</th>
+                                                    <th class="text-left">Loan Info</th>
+                                                    <th class="text-left">Workout Info</th>
+                                                    <th class="text-left">Stage Info</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="" data-trknum="8160.16517" data-stagestatuscd="OVD" data-stagecd="SOLICDDC.029" data-loan="0095681474">
+                                                    <td class="text-left valign-top">0095681474</td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Borrower: ANDY AMERICA</div>
+                                                        <div>Phone: 7777777777</div>
+                                                        <div class="mt-3">
+                                                            Loan Due Date:
+                                                            <span>
+                                                                6/1/2019
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Agency: FHA</div>
+                                                        <div>Prop State: TN</div>
+                                                        <div>Fcl Sale Date: </div>
+                                                        <div>Fcl Stop Code: </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Workout: FHA Solicitation Template</div>
+                                                        <div>Track Zone: SOLIC</div>
+                                                        <div>Assigned User: Jonathan Santiago</div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div class="flex flex-row valign-top">
+                                                            <span>
+                                                                <img src="/images/Problem.gif" alt="Stage Overdue" class="mr-3">
+                                                            </span>
+                                                            <span>
+                                                                <a href="#" class="hyperLink_static stage-action" data-action="cmp">QC Opener Missing Items</a>
+                                                            </span>
+                                                        </div>
+                                                        <div class="ml-4 pl-4">
+                                                            (SOLIC) FHA Solicitation Template
+                                                        </div>
+                                                        <div>
+                                                            Scheduled: <a href="#" class="hyperLink_static stage-action" data-action="resch">8/13/2019</a>
+                                                        </div>
+                                                        <div class="text-right mt-4">
+                                                            <span class="nav-tracking cursor-pointer hyperLink hyperLink_static" data-loan="0095681474" data-dispatch="false">
+                                                                Go to Tracking
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Row 2 -->
+                                                <tr class="" data-trknum="8160.16518" data-stagestatuscd="PND" data-stagecd="SOLICDDC.030" data-loan="0095681475">
+                                                    <td class="text-left valign-top">0095681475</td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Borrower: JANE SMITH</div>
+                                                        <div>Phone: 8888888888</div>
+                                                        <div class="mt-3">
+                                                            Loan Due Date:
+                                                            <span>
+                                                                7/15/2019
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Agency: VA</div>
+                                                        <div>Prop State: CA</div>
+                                                        <div>Fcl Sale Date: </div>
+                                                        <div>Fcl Stop Code: </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Workout: VA Loan Modification</div>
+                                                        <div>Track Zone: MODIF</div>
+                                                        <div>Assigned User: Maria Rodriguez</div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div class="flex flex-row valign-top">
+                                                            <span>
+                                                                <img src="/images/Pending.gif" alt="Stage Pending" class="mr-3">
+                                                            </span>
+                                                            <span>
+                                                                <a href="#" class="hyperLink_static stage-action" data-action="cmp">Document Collection</a>
+                                                            </span>
+                                                        </div>
+                                                        <div class="ml-4 pl-4">
+                                                            (MODIF) VA Loan Modification
+                                                        </div>
+                                                        <div>
+                                                            Scheduled: <a href="#" class="hyperLink_static stage-action" data-action="resch">9/5/2019</a>
+                                                        </div>
+                                                        <div class="text-right mt-4">
+                                                            <span class="nav-tracking cursor-pointer hyperLink hyperLink_static" data-loan="0095681475" data-dispatch="false">
+                                                                Go to Tracking
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Row 3 -->
+                                                <tr class="" data-trknum="8160.16519" data-stagestatuscd="CMP" data-stagecd="SOLICDDC.031" data-loan="0095681476">
+                                                    <td class="text-left valign-top">0095681476</td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Borrower: ROBERT JOHNSON</div>
+                                                        <div>Phone: 9999999999</div>
+                                                        <div class="mt-3">
+                                                            Loan Due Date:
+                                                            <span>
+                                                                5/10/2019
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Agency: CONV</div>
+                                                        <div>Prop State: FL</div>
+                                                        <div>Fcl Sale Date: 10/15/2019</div>
+                                                        <div>Fcl Stop Code: ACTIVE</div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Workout: Conventional Forbearance</div>
+                                                        <div>Track Zone: FORB</div>
+                                                        <div>Assigned User: David Wilson</div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div class="flex flex-row valign-top">
+                                                            <span>
+                                                                <img src="/images/Complete.gif" alt="Stage Complete" class="mr-3">
+                                                            </span>
+                                                            <span>
+                                                                <a href="#" class="hyperLink_static stage-action" data-action="cmp">Financial Review</a>
+                                                            </span>
+                                                        </div>
+                                                        <div class="ml-4 pl-4">
+                                                            (FORB) Conventional Forbearance
+                                                        </div>
+                                                        <div>
+                                                            Completed: <a href="#" class="hyperLink_static stage-action" data-action="resch">8/20/2019</a>
+                                                        </div>
+                                                        <div class="text-right mt-4">
+                                                            <span class="nav-tracking cursor-pointer hyperLink hyperLink_static" data-loan="0095681476" data-dispatch="false">
+                                                                Go to Tracking
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Row 4 -->
+                                                <tr class="" data-trknum="8160.16520" data-stagestatuscd="WIP" data-stagecd="SOLICDDC.032" data-loan="0095681477">
+                                                    <td class="text-left valign-top">0095681477</td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Borrower: SARAH WILLIAMS</div>
+                                                        <div>Phone: 6666666666</div>
+                                                        <div class="mt-3">
+                                                            Loan Due Date:
+                                                            <span>
+                                                                8/1/2019
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Agency: USDA</div>
+                                                        <div>Prop State: TX</div>
+                                                        <div>Fcl Sale Date: </div>
+                                                        <div>Fcl Stop Code: </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Workout: USDA Special Relief</div>
+                                                        <div>Track Zone: RELIEF</div>
+                                                        <div>Assigned User: Thomas Brown</div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div class="flex flex-row valign-top">
+                                                            <span>
+                                                                <img src="/images/InProgress.gif" alt="Stage In Progress" class="mr-3">
+                                                            </span>
+                                                            <span>
+                                                                <a href="#" class="hyperLink_static stage-action" data-action="cmp">Underwriting Review</a>
+                                                            </span>
+                                                        </div>
+                                                        <div class="ml-4 pl-4">
+                                                            (RELIEF) USDA Special Relief
+                                                        </div>
+                                                        <div>
+                                                            Due: <a href="#" class="hyperLink_static stage-action" data-action="resch">9/15/2019</a>
+                                                        </div>
+                                                        <div class="text-right mt-4">
+                                                            <span class="nav-tracking cursor-pointer hyperLink hyperLink_static" data-loan="0095681477" data-dispatch="false">
+                                                                Go to Tracking
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Row 5 -->
+                                                <tr class="" data-trknum="8160.16521" data-stagestatuscd="OVD" data-stagecd="SOLICDDC.033" data-loan="0095681478">
+                                                    <td class="text-left valign-top">0095681478</td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Borrower: MICHAEL DAVIS</div>
+                                                        <div>Phone: 5555555555</div>
+                                                        <div class="mt-3">
+                                                            Loan Due Date:
+                                                            <span>
+                                                                4/15/2019
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Agency: FHA</div>
+                                                        <div>Prop State: NY</div>
+                                                        <div>Fcl Sale Date: 11/10/2019</div>
+                                                        <div>Fcl Stop Code: HOLD</div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Workout: FHA Partial Claim</div>
+                                                        <div>Track Zone: PCLAIM</div>
+                                                        <div>Assigned User: Jennifer Garcia</div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div class="flex flex-row valign-top">
+                                                            <span>
+                                                                <img src="/images/Problem.gif" alt="Stage Overdue" class="mr-3">
+                                                            </span>
+                                                            <span>
+                                                                <a href="#" class="hyperLink_static stage-action" data-action="cmp">Final Documentation</a>
+                                                            </span>
+                                                        </div>
+                                                        <div class="ml-4 pl-4">
+                                                            (PCLAIM) FHA Partial Claim
+                                                        </div>
+                                                        <div>
+                                                            Scheduled: <a href="#" class="hyperLink_static stage-action" data-action="resch">7/30/2019</a>
+                                                        </div>
+                                                        <div class="text-right mt-4">
+                                                            <span class="nav-tracking cursor-pointer hyperLink hyperLink_static" data-loan="0095681478" data-dispatch="false">
+                                                                Go to Tracking
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Row 6 -->
+                                                <tr class="" data-trknum="8160.16522" data-stagestatuscd="WIP" data-stagecd="SOLICDDC.034" data-loan="0095681479">
+                                                    <td class="text-left valign-top">0095681479</td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Borrower: LISA ANDERSON</div>
+                                                        <div>Phone: 4444444444</div>
+                                                        <div class="mt-3">
+                                                            Loan Due Date:
+                                                            <span>
+                                                                9/1/2019
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Agency: FHLMC</div>
+                                                        <div>Prop State: IL</div>
+                                                        <div>Fcl Sale Date: </div>
+                                                        <div>Fcl Stop Code: </div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div>Workout: Freddie Mac Flex Modification</div>
+                                                        <div>Track Zone: MODIF</div>
+                                                        <div>Assigned User: William Taylor</div>
+                                                    </td>
+                                                    <td class="text-left valign-top">
+                                                        <div class="flex flex-row valign-top">
+                                                            <span>
+                                                                <img src="/images/InProgress.gif" alt="Stage In Progress" class="mr-3">
+                                                            </span>
+                                                            <span>
+                                                                <a href="#" class="hyperLink_static stage-action" data-action="cmp">Income Verification</a>
+                                                            </span>
+                                                        </div>
+                                                        <div class="ml-4 pl-4">
+                                                            (MODIF) Freddie Mac Flex Modification
+                                                        </div>
+                                                        <div>
+                                                            Due: <a href="#" class="hyperLink_static stage-action" data-action="resch">10/1/2019</a>
+                                                        </div>
+                                                        <div class="text-right mt-4">
+                                                            <span class="nav-tracking cursor-pointer hyperLink hyperLink_static" data-loan="0095681479" data-dispatch="false">
+                                                                Go to Tracking
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        
+                                        <!-- Pagination -->
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <div>
+                                                <span>Showing 1 to 6 of 6 entries</span>
+                                            </div>
+                                            <nav aria-label="Page navigation">
+                                                <ul class="pagination">
+                                                    <li class="page-item disabled">
+                                                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                                                    </li>
+                                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="#">Next</a>
+                                                    </li>
+                                                </ul>
+                                            </nav>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- No Data Message (hidden when table is shown) -->
+                                    <div id="nodata" class="border shadow-regular py-3 px-4 bg-lightgray" style="display: none;">
+                                        <p>No records found.</p>
+                                        <p>
+                                            Either no ToDo records currently exist, or filter settings have filtered out
+                                            any possible result.
+                                        </p>
+                                        <p>
+                                            Please check the filter settings and adjust as necessary.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <script src="/JScriptSource/jquery/jquery.fancybox.js" type="text/javascript"></script>
+
+                        <script type="text/javascript">
+                            const todolist = (function () {
+                                const advFilterLabel = 'Advanced Filter/Sort';
+                                const advFilter = 'N';
+
+                                const emptyPreset = {
+                                    AgencyType: null,
+                                    HideLockedLoans: false,
+                                    LoanExactSearch: false,
+                                    LoanNumber: null,
+                                    MilestoneDescr: null,
+                                    Sorts: [],
+                                    StageDescr: null,
+                                    StageStatus: null,
+                                    StageType: null,
+                                    StateCode: null,
+                                    TrackZone: null,
+                                    WorkoutDescr: null
+                                };
+
+                                let countDownSec = +'0';
+                                let todoListCnt = +'0';
+
+                                function checkTimerAndReload() {
+                                    $('#countdown').text(countDownSec);
+                                    countDownSec = countDownSec - 1;
+                                    if (countDownSec === 0) {
+                                        __timerUtil.stopTimer();
+                                        window.location.reload(1);
+                                    }
+                                }
+
+                                function resetTimerCallBack() {
+                                    countDownSec = '0';
+                                }
+
+                                function startTimer() {
+                                    if (countDownSec > 0 && todoListCnt > 0) {
+                                    
+                                // Function to toggle between table and no data message
+                                function toggleTableDisplay(hasData) {
+                                    const todoTable = document.getElementById('todoTable');
+                                    const noDataMsg = document.getElementById('nodata');
+                                    
+                                    if (hasData) {
+                                        todoTable.style.display = 'block';
+                                        noDataMsg.style.display = 'none';
+                                    } else {
+                                        todoTable.style.display = 'none';
+                                        noDataMsg.style.display = 'block';
+                                    }
+                                }
+                                        $('#countdownmsg').show();
+                                        document.addEventListener('keydown', __timerUtil.resetTimer);
+                                        document.addEventListener('mousemove', __timerUtil.resetTimer);
+                                        document.addEventListener('mousedown', __timerUtil.resetTimer);
+
+                                        __timerUtil.startTimer(1000, checkTimerAndReload, resetTimerCallBack);
+                                    }
+                                }
+
+                                function stopTimer() {
+                                    document.removeEventListener('keydown', __timerUtil.resetTimer);
+                                    document.removeEventListener('mousemove', __timerUtil.resetTimer);
+                                    document.removeEventListener('mousedown', __timerUtil.resetTimer);
+
+                                    __timerUtil.stopTimer();
+                                }
+
+                                function init() {
+                                    initFilterOptions();
+
+                                    attachEvents();
+
+                                    adjustStageSelectionFields();
+
+                                    if (advFilter === 'Y') {
+                                        showHideAdvancedFilter($('#filterOptions')[0]);
+                                    }
+
+                                    checkPreset();
+
+                                    startTimer();
+                                }
+
+                                function initFilterOptions() {
+                                    $('#filterOptions').text(advFilterLabel);
+                                    $('#filterOptions').data('advanced', advFilter);
+                                }
+
+                                function attachEvents() {
+                                    $('#filterOptions').on('click', ($event) => handleShowHideAdvFilter($event));
+                                    $('#imgCollapse').on('click', ($event) => showHideFilter(false));
+                                    $('#imgExpand').on('click', ($event) => showHideFilter(true));
+                                    $('#applyFilter').on('click', ($event) => {
+                                        $('#Filter_Applying').val(true);
+                                        ShowProcessing();
+                                        $('#todo-filter').trigger('submit');
+                                    });
+                                    $('#Filter_QueueType').on('change', ($event) => handleQueueTypeChange($event));
+                                    $('.nav-tracking').on('click', ($event) => handleGoToTracking($event));
+                                    $('#Filter_StageType').on('change', () => adjustStageSelectionFields());
+                                    $('.stage-action').on('click', ($event) => handleStageAction($event));
+
+                                    $('#Filter_QueueTitle').on('change', ($event) => handleQueueTitleChange($event));
+                                    $('#Filter_Preset').on('change', ($event) => handlePresetChange($event));
+                                }
+
+                                function handleShowHideAdvFilter($event) {
+                                    $event.preventDefault();
+                                    showHideAdvancedFilter($event.target);
+                                }
+
+                                function showHideAdvancedFilter(elem) {
+                                    const advSel = $('#advancedFilter > div');
+                                    if (elem.dataset.advanced === 'N') {
+
+                                        advSel.addClass('mh-max');
+                                        elem.dataset.advanced = 'Y';
+                                        $('#Filter_AdvOptions').val(true);
+                                        $('#filterOptions').text('Simple Filter/Sort');
+                                        $('#buttonSeperator').removeClass('hide');
+                                    } else {
+                                        $('#buttonSeperator').addClass('hide');
+                                        advSel.removeClass('mh-max');
+                                        elem.dataset.advanced = 'N';
+                                        $('#filterOptions').text('Advanced Filter/Sort');
+                                        $('#Filter_AdvOptions').val(false);
+
+                                        $('#Filter_Preset').val('');
+                                        handleNoPreset();
+                                    }
+                                }
+
+                                function showHideFilter(show) {
+                                    if (show) {
+                                        $('#imgExpand').addClass('hide');
+                                        $('#imgCollapse').removeClass('hide');
+                                        $('#divFilter').removeClass('hide');
+                                    } else {
+                                        $('#imgExpand').removeClass('hide');
+                                        $('#imgCollapse').addClass('hide');
+                                        $('#divFilter').addClass('hide');
+                                    }
+                                }
+
+                                function addOption(elem, key, text, selected) {
+                                    const opt = document.createElement('option');
+                                    opt.value = key;
+                                    opt.textContent = text;
+                                    if (selected) {
+                                        opt.setAttribute('selected', '');
+                                    }
+                                    elem.appendChild(opt);
+                                }
+
+                                function handleQueueTypeChange($event) {
+                                    const queueType = $($event.target).find(':selected').val();
+                                    adjustStageSelectionFields();
+                                    getQueueTitles(queueType);
+                                    handleNoPreset();
+                                }
+
+                                function getQueueTitles(queueType) {
+                                    const queueTitleSel = '#Filter_QueueTitle';
+
+                                    $(queueTitleSel).empty();
+
+                                    if (queueType) {
+                                        const url = __ngUtil.getSafeUrl('/LoanActivity/Workflow/ToDoList/GetQueueTitles', {
+                                            AppSessionId: 'fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542',
+                                            queueType: queueType
+                                        });
+
+                                        __Ajax.Get({
+                                            url: url,
+                                            callBack: (data) => {
+                                                const qTitles = data.QueueTitles;
+
+                                                if (qTitles.length > 0) {
+                                                    const select = $(queueTitleSel)[0];
+
+                                                    for (const title of qTitles) {
+                                                        addOption(select, title.KeyValue, title.KeyDescription, title.IsSelected);
+                                                    }
+
+                                                    const selectedTitle = $(queueTitleSel).find('option:selected');
+                                                    if (selectedTitle && selectedTitle.val()) {
+                                                        handleQueueTitleChange();
+                                                    } else {
+                                                        handleNoPreset();
+                                                        handleQueueTitleChange();
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    } else {
+                                        clearPresets();
+                                        handleNoPreset();
+                                    }
+                                }
+
+                                function handleGoToTracking($event) {
+                                    $event.preventDefault();
+                                    const target = $event.target;
+
+                                    const loan = target.dataset.loan;
+                                    const isDispatch = JSON.parse(target.dataset.dispatch);
+                                    const trkNum = isDispatch ? target.dataset.trknum : undefined;
+
+                                    const url = isDispatch ? `/LoanActivity/Workflow/ToDoList/SetDispatch` : `/LoanActivity/Workflow/ToDoList/SetTracking`;
+
+                                    __Ajax.Post({
+                                        url: url,
+                                        data: __AntiForgeryTokenMgmt.AddTokenAsData({
+                                            AppSessionId: "fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542",
+                                            loanNum: loan,
+                                            trkNum: trkNum,
+                                        }),
+                                        callBack: (data) => {
+                                            if (!data.IsError) {
+                                                ShowProcessing();
+
+                                                const trackingUrl = `${window.location.origin}${data.TrackingUrl}`;
+                                                window.location = trackingUrl;
+                                            }
+                                        }
+                                    });
+                                }
+
+                                function adjustStageSelectionFields() {
+                                    const queueType = $('#Filter_QueueType').find(':selected').val();
+
+                                    const enableStageType = queueType === 'MYLOANS';
+                                    const stageType = $('#Filter_StageType').find(':selected').val();
+                                    const enableStageDescr = !enableStageType || stageType === 'A';
+
+                                    if (enableStageType) {
+                                        Array.from($('.stage-type')).forEach(item => item.classList.remove('hide'));
+                                    } else {
+                                        Array.from($('.stage-type')).forEach(item => item.classList.add('hide'));
+                                    }
+
+                                    if (enableStageDescr) {
+                                        Array.from($('.stage-descr')).forEach(item => item.classList.remove('hide'));
+                                        Array.from($('.milestone-descr')).forEach(item => item.classList.add('hide'));
+                                    } else {
+                                        Array.from($('.stage-descr')).forEach(item => item.classList.add('hide'));
+                                        Array.from($('.milestone-descr')).forEach(item => item.classList.remove('hide'));
+                                    }
+                                }
+
+                                function handleStageAction($event, fromDispatch = false) {
+
+                                    stopTimer();
+
+                                    $event.preventDefault();
+
+                                    const target = $event.target;
+                                    const targetDs = target.closest('tr').dataset;
+
+                                    $.fancybox({
+                                        autoSize: true,
+                                        href: '/LoanActivity/Workflow/Tracking/TodoStageActions',
+                                        type: 'ajax',
+                                        padding: 0,
+                                        minWidth: 600,
+                                        width: 1024,
+                                        height: 700,
+                                        modal: true,
+                                        closeBtn: false,
+                                        openEffect: 'none',
+                                        closeEffect: 'none',
+                                        openSpeed: "fast",
+                                        closeSpeed: "fast",
+                                        topRatio: 0.25,
+                                        autoCenter: true,
+                                        autoSize: false,
+                                        ajax: {
+                                            method: 'POST',
+                                            cache: false,
+                                            headers: {
+                                                'ajax-on-error-response-type'
+                                                    : 'html'
+                                            },
+                                            data: __AntiForgeryTokenMgmt.AddTokenAsData({
+                                                AppSessionId: "fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542",
+                                                loanNumber: targetDs.loan,
+                                                trackingNum: targetDs.trknum,
+                                                stageCd: targetDs.stagecd,
+                                                stageStatus: targetDs.stagestatuscd,
+                                                stageCompleteDate: null,
+                                                stageCompleteTime: null,
+                                                IsFromDispatch: fromDispatch,
+                                            })
+                                        },
+                                        afterShow: function () {
+                                            HideProcessing();
+                                        },
+                                        beforeClose: function () {
+
+                                        },
+                                        afterClose: function () {
+                                            releaseLock(targetDs.trknum);
+                                        },
+                                        stageData: {
+                                            event: target.dataset.action,
+                                        }
+                                    });
+                                }
+
+                                function releaseLock(trackingNum) {
+                                    __Ajax.Post({
+                                        url: '/LoanActivity/Workflow/Tracking/CloseTodoStageAction',
+                                        data: __AntiForgeryTokenMgmt.AddTokenAsData({
+                                            AppSessionId: "fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542",
+                                            trackingNum: trackingNum,
+                                        }),
+                                        callBack: () => {
+
+                                            const activeTab = $('.todo-list .tab-head.current-view');
+                                            let currentTab = 'queues';
+                                            if (activeTab.length > 0) {
+                                                currentTab = activeTab.data('tab');
+                                            }
+
+                                            if (currentTab === 'queues') {
+                                                window.location.reload();
+                                            } else {
+                                                dispatchItem.refreshDispatch(true);
+                                            }
+                                        },
+                                    });
+                                }
+
+                                function handleQueueTitleChange($event) {
+                                    clearAdvFilterData();
+                                    resetAdvFilter(true);
+                                    handleNoPreset();
+
+                                    const url = `/LoanActivity/Workflow/ToDoList/GetPresets`;
+
+                                    __Ajax.Post({
+                                        url: url,
+                                        data: __AntiForgeryTokenMgmt.AddTokenAsData({
+                                            AppSessionId: "fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542",
+                                            QueueTypeCode: $('#Filter_QueueType').find('option:selected').val(),
+                                            Data: $('#Filter_QueueTitle').find('option:selected').val(),
+                                        }),
+                                        callBack: (data) => {
+                                            if (!data.IsError) {
+                                                HideProcessing();
+
+                                                const presetDdl = $('#Filter_Preset');
+                                                clearPresets(presetDdl);
+                                                handleNoPreset();
+                                                data.Presets?.forEach((preset) => {
+                                                    const presetOpt = new Option(preset.ShortDescr, preset.FilterCode, false, false);
+                                                    presetOpt.dataset.descr = preset.LongDescr;
+                                                    presetOpt.dataset.configJson = preset.ConfigJson;
+                                                    presetDdl[0].appendChild(presetOpt);
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+
+                                function clearPresets(presetCtrl) {
+                                    const presetDdl = !presetCtrl ? $('#Filter_Preset') : presetCtrl;
+                                    presetDdl.empty();
+                                    const blankOpt = new Option('-- None --', '', true, true);
+                                    presetDdl[0].appendChild(blankOpt);
+                                }
+
+                                function checkPreset() {
+
+                                    const selectedPreset = $('#Filter_Preset').find('option:selected');
+
+                                    if (selectedPreset && selectedPreset.val()) {
+                                        presetAction(selectedPreset.val(), (selectedPreset && selectedPreset !== ''), false);
+                                    }
+                                }
+
+                                function handlePresetChange($event) {
+                                    const ddl = $event.target;
+                                    const presetCode = ddl.options[ddl.selectedIndex].value;
+
+                                    if (!presetCode) {
+                                        handleNoPreset();
+                                    } else {
+                                        const elem = $('#filterOptions')[0];
+                                        if (elem.dataset.advanced === 'N') {
+                                            showHideAdvancedFilter(elem);
+                                        }
+                                        presetAction(presetCode, false, true);
+                                    }
+                                }
+
+                                function handleNoPreset() {
+                                    unlockAdvFilter();
+                                    resetAdvFilter();
+                                }
+
+                                function clearAdvFilterData() {
+                                    $('#advancedFilter .adv-filter select').empty();
+                                    $('#advancedFilter .adv-filter #Filter_LoanNumber').val('');
+                                    $('#advancedFilter .adv-filter input[type="checkbox"]').prop('checked', false);
+                                }
+
+                                function resetAdvFilter(unconditional = false) {
+                                    Array.from($('.adv-filter select')).forEach(sel => {
+                                        const jqSel = $(sel);
+                                        if (jqSel.find('option.val-inserted').length > 0) {
+                                            jqSel.empty();
+                                        }
+
+                                        if (unconditional) {
+                                            jqSel.empty();
+                                        }
+                                    });
+
+                                    const sortGrps = Array.from($('[data-sortIndex]'));
+
+                                    if (sortGrps.length > 0) {
+                                        sortGrps.forEach((sortGrp, index) => {
+                                            $(sortGrp).find(`input[type="radio"][value="ASC"]`).prop('checked', true);
+                                            $(sortGrp).find(`input[type="radio"][value="F"]`).prop('checked', true);
+
+                                            let selectList = $(sortGrp).find('select');
+                                            if (selectList !== undefined) {
+                                                if (selectList.find('option').length > 1) {
+                                                    selectList.prop('selectedIndex', 0);
+                                                } else {
+                                                    selectList.empty();
+                                                }
+                                            }
+
+                                            $(sortGrp).find('.pe-none').removeClass('pe-none');
+                                        });
+                                    }
+                                }
+
+                                function presetAction(presetCode, useEditable, isPresetChanged) {
+                                    if (!presetCode) {
+                                        setPreset(undefined);
+                                    } else {
+                                        const ddl = $('#Filter_Preset')[0];
+                                        const preset = JSON.parse(ddl.options[ddl.selectedIndex].dataset.configJson);
+                                        setPreset(preset, useEditable, isPresetChanged);
+                                    }
+
+                                    if (!useEditable) {
+                                        lockUnlockAdvFilter(presetCode);
+                                    }
+                                }
+
+                                function setPreset(selPreset, useEditable, isPresetChanged) {
+                                    let preset = !selPreset ? emptyPreset : { ...selPreset };
+
+                                    selectDropDownItem($(`#divFilter #Filter_TrackZone`), preset.TrackZone, useEditable);
+                                    selectDropDownItem($(`#divFilter #Filter_AgencyType`), preset.AgencyType, useEditable);
+                                    selectDropDownItem($(`#divFilter #Filter_StateCode`), preset.StateCode, useEditable);
+                                    selectDropDownItem($(`#divFilter #Filter_StageType`), preset.StageType, useEditable);
+                                    $(`#divFilter #Filter_StageType`).trigger('change');
+                                    selectDropDownItem($(`#divFilter #Filter_MilestoneDescr`), preset.MilestoneDescr, useEditable);
+
+                                    selectDropDownItem($(`#divFilter #Filter_StageDescr`), preset.StageDescr, useEditable);
+                                    selectDropDownItem($(`#divFilter #Filter_StageStatus`), preset.StageStatus, useEditable);
+                                    selectDropDownItem($(`#divFilter #Filter_WorkoutDescr`), preset.WorkoutDescr, useEditable);
+
+                                    if (preset.LoanNumber) {
+                                        const loanNumTxt = $('#Filter_LoanNumber');
+                                        const loanNum = (preset.LoanNumber?.Value ?? '');
+                                        loanNumTxt.val(loanNum);
+
+                                        const isEditable = useEditable && ((preset.LoanNumber?.AllowEdit ?? false) === true);
+
+                                        if (!isEditable) {
+                                            loanNumTxt.addClass('disabled');
+                                            loanNumTxt.off('keydown').on('keydown', ($event) => $event.preventDefault());
+                                        } else {
+                                            loanNumTxt.removeClass('disabled');
+                                            loanNumTxt.off('keydown');
+                                        }
+                                    }
+
+                                    if (preset.LoanExactSearch) {
+                                        const exactSearchChk = $('#Filter_LoanExactSearch');
+                                        const loanExactSearch = (preset.LoanExactSearch?.Value ?? false) === true;
+                                        exactSearchChk.prop('checked', loanExactSearch);
+
+                                        const isEditable = useEditable && ((preset.LoanExactSearch?.AllowEdit ?? false) === true);
+
+                                        if (!isEditable) {
+                                            exactSearchChk.addClass('pe-none');
+                                            $('label[for="Filter_LoanExactSearch"]').addClass('pe-none');
+                                            exactSearchChk.off('keydown').on('keydown', ($event) => $event.preventDefault());
+                                        } else {
+                                            exactSearchChk.removeClass('pe-none');
+                                            $('label[for="Filter_LoanExactSearch"]').removeClass('pe-none');
+                                            exactSearchChk.off('keydown');
+                                        }
+                                    }
+
+                                    if (preset.HideLockedLoans) {
+                                        const hideLockedChk = $('#Filter_HideLockedLoans');
+                                        const hideLocked = (preset.HideLockedLoans?.Value ?? false) === true;
+                                        hideLockedChk.prop('checked', hideLocked);
+
+                                        const isEditable = useEditable && ((preset.HideLockedLoans?.AllowEdit ?? false) === true);
+
+                                        if (!isEditable) {
+                                            hideLockedChk.addClass('pe-none');
+                                            $('label[for="Filter_HideLockedLoans"]').addClass('pe-none');
+                                            hideLockedChk.off('keydown').on('keydown', ($event) => $event.preventDefault());
+                                        } else {
+                                            hideLockedChk.removeClass('pe-none');
+                                            $('label[for="Filter_HideLockedLoans"]').removeClass('pe-none');
+                                            hideLockedChk.off('keydown');
+                                        }
+                                    }
+
+                                    const sortGrps = Array.from($('[data-sortIndex]'));
+
+                                    if (sortGrps.length > 0) {
+                                        sortGrps.forEach((sortGrp, index) => {
+                                            if (preset.Sorts?.length > 0 && preset.Sorts.slice(index, index + 1).length > 0) {
+                                                const sort = preset.Sorts[index];
+                                                if (isPresetChanged === true || sort?.SortOn?.AllowEdit === false) {
+                                                    selectSort(sortGrp, sort, useEditable);
+                                                }
+                                            }
+
+                                            if (isPresetChanged === true && preset.Sorts.slice(index, index + 1).length == 0) {
+                                                selectSort(sortGrp, {}, true);
+                                            }
+                                        });
+                                    }
+                                }
+
+                                function selectSort(group, item, useEditable) {
+
+                                    const ddl = $(group).find('select');
+
+                                    if (item?.SortOn) {
+                                        selectDropDownItem(ddl, item?.SortOn ?? undefined, useEditable, true);
+                                    } else {
+                                        ddl.val(undefined);
+                                        ddl.removeClass('disabled');
+                                    }
+
+                                    $(group).find(`input[type="radio"][value='${item?.SortOn?.SortOrder ?? 'ASC'}']`).prop('checked', true);
+                                    $(group).find(`input[type="radio"][value='${item?.SortOn?.Nulls ?? 'F'}']`).prop('checked', true);
+
+                                    if (useEditable) {
+                                        // Radios: If editable && AllowEdit && AllowEdit is false, then disable
+                                        if ((item?.SortOn?.AllowEdit ?? true) === false) {
+                                            $(group).find(`input[type="radio"]`).addClass('pe-none');
+                                            $(group).find(`label`).addClass('pe-none');
+                                            $(group).find(`input[type="radio"]`).off('keydown').on('keydown', ($event) => $event.preventDefault());
+                                        } else {
+                                            $(group).find(`input[type="radio"]`).removeClass('pe-none');
+                                            $(group).find(`label`).removeClass('pe-none');
+                                            $(group).find(`input[type="radio"]`).off('keydown');
+                                        }
+                                    }
+                                }
+
+                                function selectDropDownItem(ddl, item, useEditable) {
+                                    const editable = useEditable ? (item?.AllowEdit ?? true) : false;
+                                    const isSort = ddl.hasClass('sort-on');
+
+                                    if (
+                                        (!isSort && ((useEditable && !editable) || (!useEditable)))
+                                        ||
+                                        (isSort && !useEditable && ddl.find('option').length <= 1)) {
+                                        ddl.empty();
+
+                                        const opt = new Option(item?.Display ?? '', item?.Code ?? '', false, true);
+                                        opt.classList.add('val-inserted');
+                                        ddl[0].appendChild(opt);
+                                    }
+
+                                    if (isSort) {
+                                        ddl.val(item?.Code ?? '');
+                                    }
+
+                                    if (!editable) {
+                                        ddl.addClass('disabled');
+                                        ddl.off('keydown').on('keydown', ($event) => $event.preventDefault());
+                                    } else {
+                                        ddl.removeClass('disabled');
+                                        ddl.off('keydown');
+                                    }
+                                }
+
+                                function lockUnlockAdvFilter(presetCode) {
+                                    if (!presetCode) {
+                                        $('#advFilterFields').removeClass('pe-none');
+                                        $('#advFilterFields').off('keydown');
+                                    } else {
+                                        $('#advFilterFields').addClass('pe-none');
+                                        $('#advFilterFields').off('keydown').on('keydown', ($event) => $event.preventDefault());
+                                    }
+                                }
+
+                                function unlockAdvFilter() {
+                                    $('#advancedFilter select').removeClass('disabled');
+                                    $('#advancedFilter input').removeClass('disabled');
+
+                                    $('#advancedFilter select').off('keydown');
+                                    $('#advancedFilter input').off('keydown');
+
+                                    lockUnlockAdvFilter('');
+                                }
+
+                                return {
+                                    init: init,
+                                    handleGoToTracking: handleGoToTracking,
+                                    handleStageAction: handleStageAction,
+                                    stopTimer: stopTimer,
+                                    startTimer: startTimer,
+                                }
+                            }());
+
+                            const dispatchItem = (function () {
+                                function init() {
+                                    attachEvents();
+                                }
+
+                                function attachEvents() {
+                                    $('#btnDispatchNext').on('click', () => getNext(false));
+                                }
+
+                                function attachWorkItemEvents() {
+                                    $('#btnGoToTracking').on('click', ($event) => todolist.handleGoToTracking($event));
+                                    $('.wi-stage').on('click', ($event) => todolist.handleStageAction($event, true));
+                                }
+
+                                function getNext(isRefreshing) {
+                                    $('#nextWorkItem').empty();
+                                    $('#dispatchError ul').empty();
+
+                                    const url = __ngUtil.getSafeUrl('/LoanActivity/Workflow/ToDoList/GetNextWorkItem', {
+                                        AppSessionId: 'fee32ba6-df0e-4969-9b5b-9b7a443275-20250416110542',
+                                        refresh: isRefreshing
+                                    });
+
+                                    __Ajax.Get({
+                                        url: url,
+                                        callBack: (data) => {
+                                            $('.bb-tab-content.dispatch #nextWorkItem').html(data);
+                                            attachWorkItemEvents();
+                                            $(`.todo-list .tab-head.dispatch`).addClass('active');
+                                        },
+                                        errorSummaryId: 'dispatchError',
+                                    });
+                                }
+
+                                return {
+                                    init: init,
+                                    refreshDispatch: getNext,
+                                };
+                            }());
+
+                            function tabCallback(tabId) {
+                                $('.todo-list .tab-head').removeClass('current-view');
+                                $(`.todo-list .tab-head.${tabId}`).addClass('current-view');
+
+                                if (tabId === 'queues') {
+                                    todolist.startTimer();
+                                }
+
+                                if (tabId === 'dispatch') {
+
+                                    __timerUtil.resetTimer();
+                                    todolist.stopTimer();
+
+                                }
+                            }
+
+                            $(function () {
+                                todolist.init();
+                                dispatchItem.init();
+
+                                let startupTab = 'queues';
+
+
+
+                                // New Items
+                                __collapsible.init();
+                                __tabctrl.init({ rootSelector: '.todo-list', startupTab: startupTab, callbackFn: tabCallback });
+                            });
+
+                            function fetchGridPage(pageData) {
+                                const advFilter = 'N';
+
+                                $('#Filter_PageSize').val(pageData.pageSize);
+                                $('#Filter_PageNumber').val(pageData.page);
+                                $('#Filter_OnlyPaging').val(true);
+                                $('#Filter_AdvOptions').val((advFilter === 'Y'));
+
+
+                                ShowProcessing();
+                                $('#todo-filter').trigger('submit');
+                            }
+                        </script>
+                    </section>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <div id="divLoading" style="display: none;">
+        <div id="preloaderOverlay"></div>
+        <div id="preloaderContainer">
+            <p>Please wait while we process your request...</p>
+            <div id="preloaderImg"></div>
+        </div>
+    </div>
+    <footer>
+
+        <table width="100%">
+            <tbody>
+                <tr>
+                    <td>
+                        <hr>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <font style="font-size: 7pt;">1303835-ILBUW06</font>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </footer>
+
+
+<script src="/Loan_Ingestion.js"></script>
+</body>
+
+</html>
