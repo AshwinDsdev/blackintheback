@@ -6,6 +6,74 @@
   }
 
   const storedNumbers = window.storedNumbersSet;
+  
+  console.log("Contents of storedNumbersSet:");
+  storedNumbers.forEach((value) => {
+    console.log(`- "${value}" (type: ${typeof value})`);
+  });
+  
+  // Add event listener to the submit button
+  const submitButton = document.querySelector('#btnSubmit');
+  if (submitButton) {
+    console.log("Found submit button, adding event listener");
+    
+    // Add click event listener to check for exact search
+    submitButton.addEventListener('click', function(event) {
+      // Check if exact search is selected
+      const isExact = isExactSearch();
+      const loanNumber = getLoanNumber();
+      const loanType = getLoanType();
+      
+      console.log(`Submit clicked - isExact: ${isExact}, loanNumber: ${loanNumber}, loanType: ${loanType}`);
+      
+      if (isExact && loanNumber && loanType) {
+        console.log(`Exact search selected for loan number: ${loanNumber}, type: ${loanType}`);
+        
+        // Check if the loan number is in the storedNumbersSet
+        if (!isLoanNumberProvisioned(loanNumber)) {
+          console.log(`Loan number ${loanNumber} is not provisioned to the user`);
+          showRestrictedMessage();
+          
+          // Hide the search grid for exact search with non-provisioned loan
+          const searchGrid = document.querySelector('#searchGrid');
+          if (searchGrid) {
+            searchGrid.style.display = 'none';
+          }
+          
+          // Prevent the default form submission
+          event.preventDefault();
+          return false;
+        } else {
+          console.log(`Loan number ${loanNumber} is provisioned to the user`);
+          hideRestrictedMessage();
+          
+          // For exact search with provisioned loan, show the grid
+          const searchGrid = document.querySelector('#searchGrid');
+          if (searchGrid) {
+            searchGrid.style.display = 'block';
+          }
+          
+          // Apply filtering
+          filterTable();
+        }
+      } else {
+        // For non-exact search, show the grid and apply filtering
+        hideRestrictedMessage();
+        
+        const searchGrid = document.querySelector('#searchGrid');
+        if (searchGrid) {
+          searchGrid.style.display = 'block';
+        }
+        
+        // Apply filtering to show only loans in storedNumbersSet
+        filterTable();
+        
+        console.log("Non-exact search: Showing only loans in storedNumbersSet");
+      }
+    });
+  } else {
+    console.error("Submit button not found");
+  }
 
   console.log("Contents of storedNumbersSet:");
   storedNumbers.forEach((value) => {
@@ -44,7 +112,7 @@
   function showRestrictedMessage() {
     const errorMessageDiv = document.querySelector('#errorMessageSearch');
     if (errorMessageDiv) {
-      errorMessageDiv.textContent = 'You are not provisioned for this loan';
+      errorMessageDiv.textContent = 'Loan is not provisioned to the user';
       errorMessageDiv.style.display = 'block';
     }
   }
@@ -80,8 +148,7 @@
     const loanType = getLoanType();
     const isExact = isExactSearch();
 
-    // Check if this is a single loan search
-    const isSingleLoanSearch = loanNumber && loanType;
+    console.log(`Filtering table - isExact: ${isExact}, loanNumber: ${loanNumber}, loanType: ${loanType}`);
 
     rows.forEach((row) => {
       let loanValue = null;
@@ -106,50 +173,34 @@
 
       if (loanValue) {
         console.log(`Checking ${loanType} value: "${loanValue}"`);
-        console.log(`Type of loanValue: ${typeof loanValue}`);
-        console.log(`Length of loanValue: ${loanValue.length}`);
+
+        // Check if this loan value is in storedNumbersSet
+        const isInStoredSet = isLoanNumberProvisioned(loanValue);
+        console.log(`Loan "${loanValue}" in storedSet: ${isInStoredSet}`);
+
+        // First check: Is the loan in storedNumbersSet? (Always required)
+        if (!isInStoredSet) {
+          console.log(`Loan "${loanValue}" is not in storedNumbersSet, hiding row`);
+          row.style.display = "none";
+          removedCount++;
+          return; // Skip to next row
+        }
 
         let isMatch = false;
 
-        // Direct match
-        if (storedNumbers.has(loanValue)) {
+        // For exact search with a loan number, check if it matches
+        if (isExact && loanNumber) {
+          // Check if the loan number matches the search criteria
+          if (loanValue.includes(loanNumber) || loanNumber.includes(loanValue) ||
+              loanValue.toLowerCase() === loanNumber.toLowerCase()) {
+            isMatch = true;
+            console.log(`Match found for exact search: "${loanValue}" matches "${loanNumber}"`);
+          }
+        } else {
+          // For non-exact search or no loan number, consider it a match
+          // But still only show loans that are in storedNumbersSet (already checked above)
           isMatch = true;
-          console.log(`Direct match found for "${loanValue}"`);
-        }
-
-        // Try as a number if it's numeric
-        if (!isMatch && /^\d+$/.test(loanValue)) {
-          const numericValue = Number(loanValue);
-          if (storedNumbers.has(numericValue)) {
-            isMatch = true;
-            console.log(`Numeric match found for ${numericValue}`);
-          }
-        }
-
-        // Try as a string if stored as number
-        if (!isMatch && !isNaN(loanValue)) {
-          const stringValue = String(loanValue);
-          if (storedNumbers.has(stringValue)) {
-            isMatch = true;
-            console.log(`String match found for "${stringValue}"`);
-          }
-        }
-
-        // Check by iterating through the set (for case-insensitive or partial matches)
-        if (!isMatch) {
-          storedNumbers.forEach((num) => {
-            const storedStr = String(num).toLowerCase();
-            const currentStr = String(loanValue).toLowerCase();
-
-            if (
-              storedStr === currentStr ||
-              storedStr.includes(currentStr) ||
-              currentStr.includes(storedStr)
-            ) {
-              isMatch = true;
-              console.log(`Fuzzy match found: "${loanValue}" matches "${num}"`);
-            }
-          });
+          console.log(`Match by default because exact search is off or no specific loan number`);
         }
 
         if (!isMatch) {
@@ -159,24 +210,17 @@
           row.style.display = "";
           visibleCount++;
         }
+      } else {
+        // If no loan value found for the selected type, hide the row
+        row.style.display = "none";
+        removedCount++;
       }
     });
-
-    // Handle special cases for single loan search
-    if (isSingleLoanSearch) {
-      if (visibleCount === 0) {
-        showRestrictedMessage();
-      } else {
-        hideRestrictedMessage();
-      }
-    } else {
-      hideRestrictedMessage();
-    }
 
     // Update pagination info
     updatePaginationInfo(visibleCount);
 
-    console.log(`Filtered out ${removedCount} rows that were not in storedNumbersSet`);
+    console.log(`Filtered out ${removedCount} rows, showing ${visibleCount} rows`);
   }
 
   function extractLoanNumber(text) {
@@ -222,6 +266,49 @@
     console.error("Table container not found, cannot observe changes");
   }
 
+  // Function to check if a loan number exists in storedNumbersSet
+  function isLoanNumberProvisioned(loanNumber) {
+    if (!loanNumber) return false;
+    
+    // Direct match
+    if (storedNumbers.has(loanNumber)) {
+      return true;
+    }
+    
+    // Try as a number if it's numeric
+    if (/^\d+$/.test(loanNumber)) {
+      const numericValue = Number(loanNumber);
+      if (storedNumbers.has(numericValue)) {
+        return true;
+      }
+    }
+    
+    // Try as a string if stored as number
+    if (!isNaN(loanNumber)) {
+      const stringValue = String(loanNumber);
+      if (storedNumbers.has(stringValue)) {
+        return true;
+      }
+    }
+    
+    // Check by iterating through the set (for case-insensitive or partial matches)
+    let isMatch = false;
+    storedNumbers.forEach((num) => {
+      const storedStr = String(num).toLowerCase();
+      const currentStr = String(loanNumber).toLowerCase();
+      
+      if (
+        storedStr === currentStr ||
+        storedStr.includes(currentStr) ||
+        currentStr.includes(storedStr)
+      ) {
+        isMatch = true;
+      }
+    });
+    
+    return isMatch;
+  }
+
   // Add event listeners for search form changes
   const searchForm = document.querySelector('#search-loan-form');
   if (searchForm) {
@@ -230,13 +317,28 @@
     const exactSearchCheckbox = searchForm.querySelector('#IsExactSearch');
 
     if (loanNumberInput) {
-      loanNumberInput.addEventListener('input', filterTable);
+      loanNumberInput.addEventListener('input', function() {
+        // Only apply filtering if not in exact search mode
+        if (!isExactSearch()) {
+          filterTable();
+        }
+      });
     }
     if (loanTypeSelect) {
-      loanTypeSelect.addEventListener('change', filterTable);
+      loanTypeSelect.addEventListener('change', function() {
+        // Only apply filtering if not in exact search mode
+        if (!isExactSearch()) {
+          filterTable();
+        }
+      });
     }
     if (exactSearchCheckbox) {
-      exactSearchCheckbox.addEventListener('change', filterTable);
+      exactSearchCheckbox.addEventListener('change', function() {
+        // If switching to non-exact search, apply filtering
+        if (!exactSearchCheckbox.checked) {
+          filterTable();
+        }
+      });
     }
   }
 })();
