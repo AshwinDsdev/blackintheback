@@ -3581,38 +3581,7 @@
              </table>
           </div>
              <div>
-                <div class="page-container" id="bottom-pager"><style type="text/css">#bottom-pager.page-container { padding:0.25rem 1rem; border: 1px solid #ced4da; border-radius:0.25rem; margin:4px 0; display:flex; flex-direction:row; align-items:center }
-                               #bottom-pager .page-numbers { display: inline-flex; flex-direction: row; align-items: center; }
-                               #bottom-pager .page-selector, #bottom-pager .page-number { cursor: pointer; text-decoration: none; color: unset; padding: 8px 12px; border: 1px solid transparent; border-radius: 5px; margin: 0 2px; }
-                               #bottom-pager .page-selector:not(.selected):hover, #bottom-pager .page-number:not(.selected):hover { background-color: #2F4F4F; color: #fff; font-weight: bold; }
-                               #bottom-pager .page-number.selected { font-weight: bold; background-color: #C0C0C0; color: #000; }
-                               #bottom-pager .page-previous.disabled, #bottom-pager .page-first.disabled, #bottom-pager .page-next.disabled, #bottom-pager .page-last.disabled { color: #a6a6a6; font-weight: bold; cursor: default; }
-                               #bottom-pager .page-previous.disabled:hover, #bottom-pager .page-first.disabled:hover, #bottom-pager .page-next.disabled:hover, #bottom-pager .page-last.disabled:hover { background-color: unset;  color: #a6a6a6; }
-                               #bottom-pager .page-selector.page-number.hide { display: none; }
-                               #bottom-pager .page-size-select { padding: 0.375rem 2.25rem 0.375rem 0.75rem; border-radius: 5px; border: 1px solid #ced4da !important;max-width: max-content !important;margin: 0 8px; }
-                               #bottom-pager .page-size-container { display:inline-flex; flex-direction:row;align-items:center;margin: 4px 0; }
-                               #bottom-pager .page-numbers.hidden .page-number, #bottom-pager .page-first.hidden, #bottom-pager .page-last.hidden { display: none; }
-                               #bottom-pager .current-page-display { display: inline-flex; flex-direction: row;  align-items: center; }
-                               #bottom-pager .current-page-display.hidden { display: none; }
-                               #bottom-pager .current-page-display .current-page { font-weight: bold; margin-left: 4px; }
-                               #bottom-pager .select-page-num-select { padding: 0.375rem 2.25rem 0.375rem 0.75rem; border-radius: 5px; border: 1px solid #ced4da !important; width: unset !important;margin: 0 8px; } </style>
-    <div class="page-size-container">
-    <span>Page Size: </span>
-    <select class="page-size-select" id="page-size-selection" name="page-size-selection" title="page-size-selection">
-    <option value="25">25</option>
-    <option selected="" value="50">50</option>
-    <option value="100">100</option>
-    </select>
-    </div>
-    <span id="page-tot-pages">Pages: 4</span>
-    <a class="page-selector page-number page-first disabled" data-page="1" title="1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-skip-start-fill" viewBox="0 0 16 16"><path d="M4 4a.5.5 0 0 1 1 0v3.248l6.267-3.636c.54-.313 1.232.066 1.232.696v7.384c0 .63-.692 1.01-1.232.697L5 8.753V12a.5.5 0 0 1-1 0V4z"></path></svg></a>
-    <a class="page-selector page-number page-previous disabled" data-page="-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-rewind-fill" viewBox="0 0 16 16"><path d="M8.404 7.304a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696L8.404 7.304Z"></path><path d="M.404 7.304a.802.802 0 0 0 0 1.392l6.363 3.692c.52.302 1.233-.043 1.233-.696V4.308c0-.653-.713-.998-1.233-.696L.404 7.304Z"></path></svg></a>
-    <div class="page-numbers">
-    <a class="selected page-selector page-number " data-page="1">1</a>
-    <a class="page-selector page-number " data-page="2">2</a>
-    <a class="page-selector page-number " data-page="3">3</a>
-    <a class="page-selector page-number " data-page="4">4</a>
-    </div>
+      
     <a class="page-selector page-number page-next " data-page="21"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-fast-forward-fill" viewBox="0 0 16 16"><path d="M7.596 7.304a.802.802 0 0 1 0 1.392l-6.363 3.692C.713 12.69 0 12.345 0 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692Z"></path><path d="M15.596 7.304a.802.802 0 0 1 0 1.392l-6.363 3.692C8.713 12.69 8 12.345 8 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692Z"></path></svg></a>
     <a class="page-selector page-number page-last " data-page="4" title="4"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-skip-end-fill" viewBox="0 0 16 16"><path d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.693 3.3 4 3.678 4 4.308v7.384c0 .63.692 1.01 1.233.697L11.5 8.753V12a.5.5 0 0 0 1 0V4z"></path></svg></a>
     <script type="text/javascript">
@@ -4821,7 +4790,51 @@
                 $(this).find('table').wrap('<div class="table-responsive"></div>');
             }
         });
+        
+        // Hide loan data table initially - run after a slight delay to ensure DOM is fully loaded
+        setTimeout(hideLoanDataTable, 100);
+        
+        // Add event listener to Apply Filter button
+        $('#applyFilter').on('click', function() {
+            showLoanDataTable();
+        });
     });
+    
+    // Function to hide loan data table
+    function hideLoanDataTable() {
+        // First remove any existing filter messages to avoid duplicates
+        $('.filter-message').remove();
+        
+        // Hide all loan data rows that have loan numbers
+        // This includes rows with data-loan attribute and any row containing a loan number
+        $('tr[data-loan]').hide();
+        
+        // Also hide any rows that might contain loan numbers but don't have the data-loan attribute
+        $('td').each(function() {
+            // Check if the cell contains what looks like a loan number (10 digits)
+            const text = $(this).text().trim();
+            if (/^\d{10}$/.test(text)) {
+                $(this).closest('tr').hide();
+            }
+        });
+        
+        // Add a single message to the page
+        // Find the main content area to add the message
+        const mainContent = $('.mt-3').first();
+        if (mainContent.length > 0) {
+            mainContent.prepend('<div class="filter-message alert alert-info mb-3">Please click "Apply Filter" to view loan data.</div>');
+        }
+    }
+    
+    // Function to show loan data table
+    function showLoanDataTable() {
+        // Show all rows that might have been hidden
+        $('tr[data-loan]').show();
+        $('tr:hidden').show();
+        
+        // Remove all filter messages
+        $('.filter-message').remove();
+    }
 </script>
 </body>
 </html>

@@ -418,326 +418,81 @@
     return messageEl;
   }
 
-  // Enhanced function to find pagination elements
-  function findPaginationElements() {
-    // Common selectors for pagination elements
-    const elements = {
-      // Standard pagination elements
-      totalRecords: document.querySelector(
-        ".total-records, .record-count, .pagination-info, [data-total-records], .showing-entries"
-      ),
-      pageCount: document.querySelector(
-        ".page-count, .pagination-pages, [data-page-count], #page-tot-pages"
-      ),
-      paginationControls: document.querySelector(
-        ".pagination, .pager, nav.pagination-nav, .pagination-container, .paging-control"
-      ),
-      itemsPerPage: document.querySelector(
-        "select.items-per-page, select.page-size, [data-items-per-page], .page-size-select, select[name='pageSize']"
-      ),
-      currentPage: document.querySelector(
-        ".current-page, .active-page, [data-current-page], .page-number.selected"
-      ),
-
-      // Custom pagination elements
-      customPager: document.getElementById("bottom-pager"),
-      customPageSizeSelect: document.querySelector(
-        "#bottom-pager .page-size-select"
-      ),
-      customPageNumbers: document.querySelector("#bottom-pager .page-numbers"),
-      customCurrentPage: document.querySelector("#bottom-pager .current-page"),
-    };
-
-    // If standard selectors don't work, try to find by text content
-    if (!elements.totalRecords) {
-      const possibleElements = document.querySelectorAll("span, div, p");
-      for (const el of possibleElements) {
-        const text = el.textContent.trim().toLowerCase();
-        if (text.includes("total") && text.includes("record")) {
-          elements.totalRecords = el;
-        } else if (
-          text.includes("page") &&
-          (text.includes("of") || text.includes("/"))
-        ) {
-          elements.pageCount = el;
-        } else if (
-          text.includes("showing") &&
-          (text.includes("entries") || text.includes("records"))
-        ) {
-          elements.totalRecords = el;
-        }
+  // Function to update the total count display and pagination
+  function updateTableInfo(visibleCount, isExactSearch = false) {
+    // Find the table container
+    const tableContainer = document.querySelector('.table-responsive, .table-container, .content-area');
+    
+    if (isExactSearch) {
+      // Hide all table-related elements
+      if (tableContainer) {
+        tableContainer.style.display = 'none';
       }
-    }
-
-    logDebug(
-      "Pagination elements found:",
-      Object.keys(elements).filter(
-        (key) => elements[key] !== null && elements[key] !== undefined
-      )
-    );
-
-    return elements;
-  }
-
-  // Function to update pagination information
-  function updatePaginationInfo(visibleCount) {
-    const paginationElements = findPaginationElements();
-
-    logDebug(`Updating pagination for ${visibleCount} visible rows`);
-
-    // Update total records count for standard pagination
-    if (paginationElements.totalRecords) {
-      const originalText = paginationElements.totalRecords.textContent;
-
-      // Different patterns for different pagination formats
-      let newText = originalText;
-
-      // Pattern: "Total: X records"
-      if (/Total:\s*\d+\s*records?/i.test(originalText)) {
-        newText = originalText.replace(/\d+(?=\s*records?)/, visibleCount);
+      return;
+    } else {
+      // Show table container
+      if (tableContainer) {
+        tableContainer.style.display = '';
       }
-      // Pattern: "Showing X entries"
-      else if (/Showing\s+\d+\s+entries/i.test(originalText)) {
-        newText = originalText.replace(/\d+(?=\s+entries)/, visibleCount);
-      }
-      // Pattern: "X records"
-      else if (/\d+\s*records?/i.test(originalText)) {
-        newText = originalText.replace(/\d+(?=\s*records?)/, visibleCount);
-      }
-      // Pattern: "Showing 1-10 of X entries"
-      else if (/Showing\s+\d+\s*-\s*\d+\s+of\s+\d+/i.test(originalText)) {
-        newText = originalText.replace(/of\s+\d+/, `of ${visibleCount}`);
-      }
-      // Pattern: "X items"
-      else if (/\d+\s*items?/i.test(originalText)) {
-        newText = originalText.replace(/\d+(?=\s*items?)/, visibleCount);
-      }
-      // Generic number replacement (last resort)
-      else {
-        const numbers = originalText.match(/\d+/g);
-        if (numbers && numbers.length > 0) {
-          // Replace the largest number (assuming it's the total)
-          const largestNumber = Math.max(...numbers.map((n) => parseInt(n)));
-          newText = originalText.replace(
-            new RegExp(largestNumber),
-            visibleCount
-          );
+
+      // Update count display
+      let countDisplay = null;
+      const spans = document.querySelectorAll('div span');
+      for (const span of spans) {
+        if (span.textContent.includes('Showing')) {
+          countDisplay = span;
+          break;
         }
       }
 
-      if (originalText !== newText) {
-        logDebug(
-          `Updating total records from "${originalText}" to "${newText}"`
-        );
-        paginationElements.totalRecords.textContent = newText;
-
-        // Also update any data attributes if they exist
-        if (
-          paginationElements.totalRecords.hasAttribute("data-total-records")
-        ) {
-          paginationElements.totalRecords.setAttribute(
-            "data-total-records",
-            visibleCount
-          );
-        }
-      }
-    }
-
-    // Update page count for standard pagination
-    if (paginationElements.pageCount) {
-      const itemsPerPage = paginationElements.itemsPerPage
-        ? parseInt(paginationElements.itemsPerPage.value)
-        : 10; // Default to 10 if not found
-
-      const totalPages = Math.max(1, Math.ceil(visibleCount / itemsPerPage));
-
-      const originalText = paginationElements.pageCount.textContent;
-      let newText = originalText;
-
-      // Pattern: "Pages: X"
-      if (/Pages:\s*\d+/i.test(originalText)) {
-        newText = originalText.replace(/\d+$/, totalPages);
-      }
-      // Pattern: "Page X of Y"
-      else if (/Page\s+\d+\s+of\s+\d+/i.test(originalText)) {
-        newText = originalText.replace(/of\s+\d+/, `of ${totalPages}`);
-      }
-      // Pattern: "X pages"
-      else if (/\d+\s*pages?/i.test(originalText)) {
-        newText = originalText.replace(/\d+(?=\s*pages?)/, totalPages);
-      }
-      // Generic number replacement (last resort)
-      else {
-        const numbers = originalText.match(/\d+/g);
-        if (numbers && numbers.length > 0) {
-          // Replace the largest number (assuming it's the total pages)
-          const largestNumber = Math.max(...numbers.map((n) => parseInt(n)));
-          newText = originalText.replace(new RegExp(largestNumber), totalPages);
-        }
+      if (countDisplay) {
+        countDisplay.textContent = `Showing 1 to ${visibleCount} of ${visibleCount} entries`;
+        logDebug(`Updated total count display to show ${visibleCount} entries`);
+      } else {
+        logDebug('Could not find count display element');
       }
 
-      if (originalText !== newText) {
-        logDebug(`Updating page count from "${originalText}" to "${newText}"`);
-        paginationElements.pageCount.textContent = newText;
-
-        // Also update any data attributes if they exist
-        if (paginationElements.pageCount.hasAttribute("data-page-count")) {
-          paginationElements.pageCount.setAttribute(
-            "data-page-count",
-            totalPages
-          );
-        }
-      }
-    }
-
-    // Also look for any text that might contain pagination information
-    const allTextElements = document.querySelectorAll("span, div, p, label");
-    for (const el of allTextElements) {
-      const text = el.textContent.trim();
-
-      // Match patterns like "Showing 1-10 of 20 records"
-      const recordsPattern = /Showing\s+\d+\s*-\s*\d+\s+of\s+(\d+)/i;
-      const recordsMatch = text.match(recordsPattern);
-
-      if (recordsMatch && parseInt(recordsMatch[1]) > visibleCount) {
-        const newText = text.replace(recordsPattern, (match, count) => {
-          return match.replace(count, visibleCount);
-        });
-
-        logDebug(`Updating records text from "${text}" to "${newText}"`);
-        el.textContent = newText;
-      }
-
-      // Match patterns like "Page 1 of 5"
-      const pagePattern = /Page\s+\d+\s+of\s+(\d+)/i;
-      const pageMatch = text.match(pagePattern);
-
-      if (pageMatch) {
-        const itemsPerPage = paginationElements.itemsPerPage
-          ? parseInt(paginationElements.itemsPerPage.value)
-          : 10;
-
-        const totalPages = Math.max(1, Math.ceil(visibleCount / itemsPerPage));
-
-        if (parseInt(pageMatch[1]) > totalPages) {
-          const newText = text.replace(pagePattern, (match, count) => {
-            return match.replace(count, totalPages);
-          });
-
-          logDebug(`Updating page text from "${text}" to "${newText}"`);
-          el.textContent = newText;
-        }
-      }
-
-      // Match patterns like "1-10 of 20"
-      const shortPattern = /\d+\s*-\s*\d+\s+of\s+(\d+)/i;
-      const shortMatch = text.match(shortPattern);
-
-      if (shortMatch && parseInt(shortMatch[1]) > visibleCount) {
-        const newText = text.replace(shortPattern, (match, count) => {
-          return match.replace(count, visibleCount);
-        });
-
-        logDebug(
-          `Updating short pagination text from "${text}" to "${newText}"`
-        );
-        el.textContent = newText;
-      }
-    }
-
-    // If there's only one page now, disable pagination controls
-    const itemsPerPage = paginationElements.itemsPerPage
-      ? parseInt(paginationElements.itemsPerPage.value)
-      : paginationElements.customPageSizeSelect
-      ? parseInt(paginationElements.customPageSizeSelect.value)
-      : 10;
-
-    const totalPages = Math.max(1, Math.ceil(visibleCount / itemsPerPage));
-
-    if (totalPages === 1) {
-      // Standard pagination
-      if (paginationElements.paginationControls) {
-        const paginationButtons =
-          paginationElements.paginationControls.querySelectorAll("a, button");
-        paginationButtons.forEach((button) => {
-          if (
-            !button.classList.contains("active") &&
-            !button.classList.contains("current")
-          ) {
-            button.classList.add("disabled");
-            button.setAttribute("disabled", "disabled");
-            // Prevent clicks
-            button.addEventListener(
-              "click",
-              (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-              },
-              true
-            );
+      // Update pagination
+      const pagination = document.querySelector('.pagination');
+      if (pagination) {
+        // Remove all page items except Previous and Next
+        const pageItems = pagination.querySelectorAll('.page-item');
+        pageItems.forEach(item => {
+          if (!item.querySelector('a').textContent.includes('Previous') && 
+              !item.querySelector('a').textContent.includes('Next')) {
+            item.remove();
           }
         });
-      }
 
-      // Custom pagination
-      if (paginationElements.customPager) {
-        const customButtons =
-          paginationElements.customPager.querySelectorAll(".page-selector");
-        customButtons.forEach((button) => {
-          if (!button.classList.contains("selected")) {
-            button.classList.add("disabled");
-            // Prevent clicks
-            button.addEventListener(
-              "click",
-              (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-              },
-              true
-            );
+        // Add page numbers based on visible count
+        if (visibleCount > 0) {
+          const nextItem = pagination.querySelector('.page-item:last-child');
+          if (nextItem) {
+            // Add page 1 as active
+            const page1 = document.createElement('li');
+            page1.className = 'page-item active';
+            const page1Link = document.createElement('a');
+            page1Link.className = 'page-link';
+            page1Link.href = '#';
+            page1Link.textContent = '1';
+            page1.appendChild(page1Link);
+            nextItem.parentNode.insertBefore(page1, nextItem);
+
+            // Update Previous button state
+            const prevItem = pagination.querySelector('.page-item:first-child');
+            if (prevItem) {
+              prevItem.classList.add('disabled');
+            }
           }
-        });
+        } else {
+          // If no visible items, disable both Previous and Next
+          const prevItem = pagination.querySelector('.page-item:first-child');
+          const nextItem = pagination.querySelector('.page-item:last-child');
+          if (prevItem) prevItem.classList.add('disabled');
+          if (nextItem) nextItem.classList.add('disabled');
+        }
       }
     }
-  }
-
-  // Function to check if current search is only using dropdown filters
-  function isDropdownOnlySearch() {
-    // Check if search was performed only using dropdown filters
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasTextSearch =
-      urlParams.has("search") ||
-      urlParams.has("query") ||
-      urlParams.has("text");
-
-    // If there are no text search parameters, it's a dropdown-only search
-    return !hasTextSearch;
-  }
-
-  // Function to extract current search parameters from the page
-  function updateSearchParams() {
-    // Try to find dropdown elements - this is a simplified example
-    // You'll need to adjust selectors based on actual page structure
-    const queueTypeEl = document.querySelector(
-      'select[name="queueType"], .queue-type-dropdown, select[name="Filter.QueueType"]'
-    );
-    const queueTitleEl = document.querySelector(
-      'select[name="queueTitle"], .queue-title-dropdown, select[name="Filter.QueueTitle"]'
-    );
-    const presetDropdownEl = document.querySelector(
-      'select[name="preset"], .preset-dropdown, select[name="Filter.Preset"]'
-    );
-
-    const searchParams = {
-      queueType: queueTypeEl ? queueTypeEl.value : null,
-      queueTitle: queueTitleEl ? queueTitleEl.value : null,
-      presetDropdown: presetDropdownEl ? presetDropdownEl.value : null,
-    };
-
-    logDebug("Current search parameters:", searchParams);
-    return searchParams;
   }
 
   // Main filtering function
@@ -758,18 +513,42 @@
       return;
     }
 
-    // Update current search parameters
-    const currentSearchParams = updateSearchParams();
+    // Store all rows in memory if not already stored
+    if (!window.storedTableRows) {
+      window.storedTableRows = Array.from(loanTable.querySelectorAll("tr")).filter(row => !row.querySelector("th"));
+    }
 
-    const rows = loanTable.querySelectorAll("tr");
-    logDebug(`Found ${rows.length} rows in the table`);
+    // Check if exact search is selected
+    const isExactSearch = document.getElementById('Filter_LoanExactSearch')?.checked || false;
+    const loanNumber = document.getElementById('Filter_LoanNumber')?.value?.trim() || '';
+
+    // If exact search is selected, always clear the table
+    if (isExactSearch) {
+        // Clear the table
+        while (loanTable.firstChild) {
+            loanTable.removeChild(loanTable.firstChild);
+        }
+        // Hide table and related elements
+        updateTableInfo(0, true);
+        // Only show message if loan number is entered
+        if (loanNumber) {
+            if (storedNumbers.has(loanNumber)) {
+                showMessage("Loan is provisioned to user", "info");
+            } else {
+                showMessage("Loan is not provisioned to user", "warning");
+            }
+        } else {
+            showMessage("Please enter a loan number for exact search", "info");
+        }
+        return;
+    }
+
+    // For non-exact search, ALWAYS filter based on storedNumbersSet
+    logDebug(`Found ${window.storedTableRows.length} rows in the table`);
 
     let removedCount = 0;
     let visibleCount = 0;
     let restrictedLoans = [];
-
-    // Store original row indices to maintain sort order
-    const visibleRows = [];
 
     // Find the header row - it might be in the table or in a thead
     const headerRow =
@@ -779,13 +558,13 @@
     const servicerColumnIndex = findServicerColumnIndex(headerRow);
     logDebug(`Servicer column index: ${servicerColumnIndex}`);
 
-    // First pass: identify which rows should be visible or hidden
-    rows.forEach((row, index) => {
-      // Skip header rows
-      if (row.querySelector("th")) {
-        return;
-      }
+    // First clear the table
+    while (loanTable.firstChild) {
+      loanTable.removeChild(loanTable.firstChild);
+    }
 
+    // Then add back only the rows that match
+    window.storedTableRows.forEach((row, index) => {
       const cells = row.querySelectorAll("td");
       if (cells.length === 0) {
         return;
@@ -811,23 +590,15 @@
         ) {
           servicerValue = extractLoanNumber(cell.textContent);
           if (servicerValue) {
-            logDebug(
-              `Found loan number via data attribute/class: ${servicerValue}`
-            );
+            logDebug(`Found loan number via data attribute/class: ${servicerValue}`);
             break;
           }
         }
       }
 
       // Method 2: Use the identified column index
-      if (
-        !servicerValue &&
-        servicerColumnIndex >= 0 &&
-        cells.length > servicerColumnIndex
-      ) {
-        servicerValue = extractLoanNumber(
-          cells[servicerColumnIndex].textContent
-        );
+      if (!servicerValue && servicerColumnIndex >= 0 && cells.length > servicerColumnIndex) {
+        servicerValue = extractLoanNumber(cells[servicerColumnIndex].textContent);
         if (servicerValue) {
           logDebug(`Found loan number via column index: ${servicerValue}`);
         }
@@ -840,9 +611,7 @@
           if (/^\d{5,}$/.test(cellText) || /Loan\s*#?\s*\d+/i.test(cellText)) {
             servicerValue = extractLoanNumber(cellText);
             if (servicerValue) {
-              logDebug(
-                `Found loan number via pattern matching: ${servicerValue}`
-              );
+              logDebug(`Found loan number via pattern matching: ${servicerValue}`);
               break;
             }
           }
@@ -856,9 +625,7 @@
           const numMatch = cellText.match(/\d{4,}/);
           if (numMatch) {
             servicerValue = numMatch[0];
-            logDebug(
-              `Found potential loan number via numeric pattern: ${servicerValue}`
-            );
+            logDebug(`Found potential loan number via numeric pattern: ${servicerValue}`);
             break;
           }
         }
@@ -903,442 +670,115 @@
               currentStr.includes(storedStr)
             ) {
               isMatch = true;
-              logDebug(
-                `Partial match found: ${storedStr} contains/matches ${currentStr}`
-              );
+              logDebug(`Partial match found: ${storedStr} contains/matches ${currentStr}`);
             }
           });
         }
 
-        if (!isMatch) {
-          row.style.display = "none";
+        if (isMatch) {
+          loanTable.appendChild(row);
+          visibleCount++;
+          logDebug(`Showing row with loan: ${servicerValue}`);
+        } else {
           removedCount++;
           restrictedLoans.push(servicerValue);
           logDebug(`Hiding row with loan: ${servicerValue}`);
-        } else {
-          row.style.display = "";
-          visibleCount++;
-          // Store this row to maintain sort order
-          visibleRows.push({ index, row });
-          logDebug(`Showing row with loan: ${servicerValue}`);
         }
       } else {
-        // If we couldn't find a loan number, keep the row visible
-        row.style.display = "";
-        visibleCount++;
-        logDebug(`No loan number found in row ${index}, keeping visible`);
+        removedCount++;
+        logDebug(`No loan number found in row ${index}, keeping hidden`);
       }
     });
 
-    logDebug(
-      `Filtering complete: ${visibleCount} visible, ${removedCount} hidden`
-    );
+    logDebug(`Filtering complete: ${visibleCount} visible, ${removedCount} hidden`);
 
-    // Update pagination counts to reflect the actual number of visible rows
-    updatePaginationInfo(visibleCount);
+    // Update the total count display and pagination
+    updateTableInfo(visibleCount, isExactSearch);
 
-    // Handle special cases based on search type and results
-    const isDropdownSearch = isDropdownOnlySearch();
-
-    // Case 1: Dropdown search with exactly one restricted loan
-    if (
-      isDropdownSearch &&
-      visibleCount === 0 &&
-      restrictedLoans.length === 1
-    ) {
-      showMessage("You are not provisioned for this loan", "warning");
-    }
-    // Case 2: Dropdown search with multiple results, some filtered
-    else if (isDropdownSearch && removedCount > 0) {
+    // Show appropriate message based on filtering results
+    if (visibleCount === 0 && removedCount > 0) {
+      showMessage("No loans found matching your access permissions.", "info");
+    } else if (removedCount > 0) {
       showMessage(
         `Showing ${visibleCount} loans you have access to. Some results were filtered due to access restrictions.`,
         "info"
       );
-    }
-    // Case 3: No results after filtering
-    else if (visibleCount === 0 && removedCount > 0) {
-      showMessage(
-        "No loans found matching your search criteria and access permissions.",
-        "info"
-      );
+    } else {
+      showMessage("", "info"); // Clear any existing message
     }
 
     return { visibleCount, removedCount, restrictedLoans };
   }
 
-  // Function to prevent access to restricted loans via URL or navigation
-  function preventRestrictedAccess() {
-    // Check if current URL contains a loan number or ID
-    const urlParams = new URLSearchParams(window.location.search);
-    const possibleLoanParams = [
-      "loan",
-      "loanId",
-      "loanNumber",
-      "id",
-      "accountId",
-      "taskId",
-      "referenceId",
-    ];
+  // Function to update table visibility based on exact search
+  function updateTableVisibility() {
+    const isExactSearch = document.getElementById('Filter_LoanExactSearch')?.checked || false;
+    const loanNumber = document.getElementById('Filter_LoanNumber')?.value?.trim() || '';
+    const todoTable = document.getElementById('todoTable');
+    const noDataMsg = document.getElementById('nodata');
 
-    for (const param of possibleLoanParams) {
-      if (urlParams.has(param)) {
-        const loanValue = urlParams.get(param);
-
-        // Check if this loan is in the allowed set
-        let isAllowed = false;
-
-        // Direct check
-        if (storedNumbers.has(loanValue)) {
-          isAllowed = true;
-        }
-
-        // Numeric check
-        if (!isAllowed && /^\d+$/.test(loanValue)) {
-          const numericValue = Number(loanValue);
-          if (storedNumbers.has(numericValue)) {
-            isAllowed = true;
-          }
-        }
-
-        // String check
-        if (!isAllowed) {
-          storedNumbers.forEach((num) => {
-            const storedStr = String(num).toLowerCase();
-            const currentStr = String(loanValue).toLowerCase();
-
-            if (
-              storedStr === currentStr ||
-              storedStr.includes(currentStr) ||
-              currentStr.includes(storedStr)
-            ) {
-              isAllowed = true;
-            }
-          });
-        }
-
-        // If not allowed, redirect to the main page
-        if (!isAllowed) {
-          logDebug(`Prevented access to restricted loan: ${loanValue}`);
-          showMessage(
-            "You do not have access to the requested loan information",
-            "warning"
-          );
-
-          // Remove the restricted parameter from URL and reload
-          urlParams.delete(param);
-          const newUrl =
-            window.location.pathname +
-            (urlParams.toString() ? "?" + urlParams.toString() : "");
-
-          // Use history API to avoid creating a new history entry
-          window.history.replaceState({}, document.title, newUrl);
-
-          // If on a detail page, redirect to list page
-          if (
-            window.location.pathname.includes("/detail") ||
-            window.location.pathname.includes("/view") ||
-            window.location.pathname.includes("/loan/")
-          ) {
-            window.location.href = "/"; // Redirect to home or list page
-          }
-
-          return false;
+    if (isExactSearch) {
+      // Always clear the table when exact search is selected
+      if (todoTable) {
+        const tbody = todoTable.querySelector('tbody') || todoTable;
+        while (tbody.firstChild) {
+          tbody.removeChild(tbody.firstChild);
         }
       }
-    }
-
-    return true;
-  }
-
-  // Intercept link clicks to prevent navigation to restricted loans
-  function setupLinkInterception() {
-    document.addEventListener(
-      "click",
-      function (e) {
-        // Check if the click was on a link
-        let target = e.target;
-        while (target && target !== document) {
-          if (target.tagName === "A") {
-            const href = target.getAttribute("href");
-            if (href) {
-              // Check if the link contains a loan ID parameter
-              try {
-                const url = new URL(href, window.location.origin);
-                const params = url.searchParams;
-
-                const possibleLoanParams = [
-                  "loan",
-                  "loanId",
-                  "loanNumber",
-                  "id",
-                  "accountId",
-                  "taskId",
-                  "referenceId",
-                ];
-
-                for (const param of possibleLoanParams) {
-                  if (params.has(param)) {
-                    const loanValue = params.get(param);
-
-                    // Check if this loan is in the allowed set
-                    let isAllowed = false;
-
-                    // Direct check
-                    if (storedNumbers.has(loanValue)) {
-                      isAllowed = true;
-                    }
-
-                    // Numeric check
-                    if (!isAllowed && /^\d+$/.test(loanValue)) {
-                      const numericValue = Number(loanValue);
-                      if (storedNumbers.has(numericValue)) {
-                        isAllowed = true;
-                      }
-                    }
-
-                    // String check
-                    if (!isAllowed) {
-                      storedNumbers.forEach((num) => {
-                        const storedStr = String(num).toLowerCase();
-                        const currentStr = String(loanValue).toLowerCase();
-
-                        if (
-                          storedStr === currentStr ||
-                          storedStr.includes(currentStr) ||
-                          currentStr.includes(storedStr)
-                        ) {
-                          isAllowed = true;
-                        }
-                      });
-                    }
-
-                    // If not allowed, prevent navigation
-                    if (!isAllowed) {
-                      logDebug(
-                        `Prevented navigation to restricted loan: ${loanValue}`
-                      );
-                      e.preventDefault();
-                      e.stopPropagation();
-
-                      showMessage(
-                        "You do not have access to the requested loan information",
-                        "warning"
-                      );
-
-                      return false;
-                    }
-                  }
-                }
-              } catch (err) {
-                // If URL parsing fails, just continue
-                logDebug(`Error parsing URL: ${err.message}`);
-              }
-            }
-            break;
-          }
-          target = target.parentNode;
-        }
-      },
-      true
-    );
-  }
-
-  // Function to patch the PagingNumHelper if it exists
-  function patchPagingNumHelper() {
-    if (window.PagingNumHelper) {
-      logDebug("Patching PagingNumHelper");
-
-      // Store the original function
-      const originalGetPageNums = window.PagingNumHelper.getPageNums;
-
-      // Replace with our patched version
-      window.PagingNumHelper.getPageNums = function (
-        totalRecords,
-        pageSize,
-        currentPage
-      ) {
-        // Get the filtered count instead of the total
-        const filteredTable = filterTable();
-        const filteredCount = filteredTable
-          ? filteredTable.visibleCount
-          : totalRecords;
-
-        // Call the original function with our filtered count
-        return originalGetPageNums.call(
-          this,
-          filteredCount,
-          pageSize,
-          currentPage
-        );
-      };
-    }
-  }
-
-  // Function to set up pagination listeners
-  function setupPaginationListeners() {
-    const paginationElements = findPaginationElements();
-
-    // Listen for changes to the items per page dropdown
-    if (paginationElements.itemsPerPage) {
-      paginationElements.itemsPerPage.addEventListener("change", () => {
-        setTimeout(() => filterTable(), 300);
-      });
-    }
-
-    // Listen for changes to custom pagination
-    if (paginationElements.customPageSizeSelect) {
-      paginationElements.customPageSizeSelect.addEventListener("change", () => {
-        setTimeout(() => filterTable(), 300);
-      });
-    }
-
-    // Listen for pagination clicks
-    if (paginationElements.paginationControls) {
-      paginationElements.paginationControls.addEventListener("click", () => {
-        setTimeout(() => filterTable(), 300);
-      });
-    }
-
-    // Listen for custom pagination clicks
-    if (paginationElements.customPager) {
-      paginationElements.customPager.addEventListener("click", () => {
-        setTimeout(() => filterTable(), 300);
-      });
-    }
-  }
-
-  // Function to set up mutation observers for dynamic content
-  function setupMutationObservers() {
-    // Watch for changes to the table
-    const loanTable = findLoanTable();
-
-    if (loanTable) {
-      const tableObserver = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          if (
-            mutation.type === "childList" ||
-            (mutation.type === "attributes" &&
-              mutation.attributeName === "style")
-          ) {
-            logDebug("Table mutation detected, reapplying filter");
-            setTimeout(() => filterTable(), 300);
-            break;
-          }
-        }
-      });
-
-      tableObserver.observe(loanTable, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["style", "class"],
-      });
-
-      logDebug("Set up table observer");
-    }
-
-    // Watch for changes to the body that might indicate new tables
-    const bodyObserver = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === "childList") {
-          for (const node of mutation.addedNodes) {
-            if (node.nodeType === 1) {
-              // Element node
-              if (node.tagName === "TABLE" || node.querySelector("table")) {
-                logDebug("New table added to DOM, reapplying filter");
-                setTimeout(() => filterTable(), 300);
-                break;
-              }
-            }
-          }
-        }
+      if (noDataMsg) {
+        noDataMsg.style.display = 'block';
       }
-    });
-
-    bodyObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-    logDebug("Set up body observer for new tables");
-  }
-
-  // Function to wait for the page to be fully loaded
-  function waitForPageLoad() {
-    if (document.readyState === "complete") {
-      initializeFiltering();
     } else {
-      window.addEventListener("load", initializeFiltering);
+      // For non-exact search, show the table
+      if (todoTable && noDataMsg) {
+        todoTable.style.display = 'block';
+        noDataMsg.style.display = 'none';
+      }
     }
   }
 
-  // Main initialization function
-  function initializeFiltering() {
-    logDebug("Initializing loan filtering");
-
-    // First check if we need to prevent access based on URL
-    preventRestrictedAccess();
-
-    // Set up link interception
-    setupLinkInterception();
-
-    // Try to find the loan table
-    const loanTable = findLoanTable();
-
-    if (loanTable) {
-      logDebug("Found loan table, applying initial filter");
-      filterTable();
-
-      // Set up pagination listeners
-      setupPaginationListeners();
-
-      // Patch PagingNumHelper if it exists
-      patchPagingNumHelper();
-
-      // Set up mutation observers for dynamic content
-      setupMutationObservers();
+  // Initialize the script
+  function initialize() {
+    // Wait for the DOM to be fully loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupEventListeners);
     } else {
-      logDebug("Loan table not found, will try again later");
+      setupEventListeners();
+    }
+  }
 
-      // Wait for the table to appear
-      waitForElement("table", () => {
-        logDebug("Table found after waiting, applying filter");
-        filterTable();
-        setupPaginationListeners();
-        patchPagingNumHelper();
-        setupMutationObservers();
+  // Set up event listeners
+  function setupEventListeners() {
+    const exactSearchCheckbox = document.getElementById('Filter_LoanExactSearch');
+    const loanNumberInput = document.getElementById('Filter_LoanNumber');
+    const applyFilterButton = document.getElementById('applyFilter');
+
+    if (exactSearchCheckbox) {
+      exactSearchCheckbox.addEventListener('change', function() {
+        updateTableVisibility();
+        if (!this.checked) {
+          setTimeout(filterTable, 100); // Add small delay to ensure DOM is ready
+        }
       });
     }
 
-    // Set additional timeouts to ensure filtering is applied after any dynamic content loads
-    setTimeout(() => {
-      filterTable();
-    }, 1000);
+    if (loanNumberInput) {
+      loanNumberInput.addEventListener('input', function() {
+        updateTableVisibility();
+        if (!document.getElementById('Filter_LoanExactSearch').checked) {
+          setTimeout(filterTable, 100); // Add small delay to ensure DOM is ready
+        }
+      });
+    }
 
-    setTimeout(() => {
-      filterTable();
-    }, 3000);
+    if (applyFilterButton) {
+      applyFilterButton.addEventListener('click', function() {
+        updateTableVisibility();
+        setTimeout(filterTable, 100); // Add small delay to ensure DOM is ready
+      });
+    }
   }
 
-  // Start the initialization process
-  waitForPageLoad();
-
-  // Expose some functions for debugging
-  window.offshoreFilter = {
-    filter: filterTable,
-    debug: () => {
-      const tables = document.querySelectorAll("table");
-      console.log(`Found ${tables.length} tables on the page:`);
-      tables.forEach((table, i) => {
-        console.log(`Table ${i}:`, {
-          id: table.id,
-          class: table.className,
-          rows: table.rows.length,
-          headers: Array.from(table.querySelectorAll("th")).map((th) =>
-            th.textContent.trim()
-          ),
-        });
-      });
-      return "Debug info logged to console";
-    },
-  };
+  // Start the initialization
+  initialize();
 })();
