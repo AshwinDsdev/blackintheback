@@ -2,6 +2,7 @@
 // Copy and paste this entire script into your browser console
 
 (function() {
+    // ########## CORE UTILITIES ##########
     // Ensure Bootstrap is loaded
     function ensureBootstrapLoaded() {
         return new Promise((resolve, reject) => {
@@ -42,23 +43,107 @@
         });
     }
     
-    // Extract loan number from the page
-    function getLoanNumber() {
-        // Look for the loan number in the specific HTML structure
-        const loanLabelElements = document.querySelectorAll('.fieldLabel');
+    // Monitor value changes (similar to the reference file)
+    function onValueChange(
+        evalFunction,
+        callback,
+        options = {}
+    ) {
+        let lastValue = undefined;
+        const startTime = new Date().getTime();
+        const endTime = options.maxTime ? startTime + options.maxTime : null;
+        const intervalId = setInterval(async () => {
+            const currentTime = new Date().getTime();
+            if (endTime && currentTime > endTime) {
+                clearInterval(intervalId);
+                return;
+            }
+            let newValue = await evalFunction();
+            if (newValue === '') newValue = null;
         
-        for (const labelElement of loanLabelElements) {
-            if (labelElement.textContent.trim() === 'Loan Number:') {
-                // Get the next sibling span with class "field normal-font"
-                const loanNumberElement = labelElement.parentElement.querySelector('.field.normal-font');
-                if (loanNumberElement) {
-                    return loanNumberElement.textContent.trim();
+            if (lastValue === newValue) return;
+            lastValue = newValue;
+        
+            await callback(newValue, lastValue);
+        }, 500);
+    }
+    
+    // ########## UI COMPONENTS ##########
+    // Create an unallowed element to replace content
+    function createUnallowedElement() {
+        const unallowed = document.createElement("div");
+        unallowed.appendChild(document.createTextNode("You are not provisioned to access this loan"));
+        unallowed.className = "access-denied-message";
+        unallowed.style.display = "flex";
+        unallowed.style.justifyContent = "center";
+        unallowed.style.alignItems = "center";
+        unallowed.style.height = "100px";
+        unallowed.style.fontSize = "20px";
+        unallowed.style.fontWeight = "bold";
+        unallowed.style.color = "red";
+        unallowed.style.position = "relative";
+        unallowed.style.zIndex = "1";
+        unallowed.style.backgroundColor = "#f8d7da";
+        unallowed.style.padding = "20px";
+        unallowed.style.borderRadius = "5px";
+        unallowed.style.margin = "20px 0";
+        unallowed.style.border = "1px solid #f5c6cb";
+
+        return unallowed;
+    }
+    
+    // ViewElement class to handle DOM manipulation
+    class ViewElement {
+        constructor() {
+            // Find the main content element that contains loan details
+            this.element = this.findMainContentElement();
+            this.parent = this.element && this.element.parentElement;
+            this.unallowed = createUnallowedElement();
+            this.unallowedParent = document.querySelector("body") || document.documentElement;
+        }
+        
+        findMainContentElement() {
+            // Look for the loan number in the specific HTML structure
+            const loanLabelElements = document.querySelectorAll('.fieldLabel');
+            
+            for (const labelElement of loanLabelElements) {
+                if (labelElement.textContent.trim() === 'Loan Number:') {
+                    // Get the container that holds the loan details
+                    return labelElement.closest('.container') || 
+                           labelElement.closest('.content') || 
+                           labelElement.closest('main') || 
+                           labelElement.closest('div');
+                }
+            }
+            
+            return null;
+        }
+
+        remove() {
+            if (this.element) {
+                // Store original display style
+                this.originalDisplay = this.element.style.display;
+                // Hide the element
+                this.element.style.display = 'none';
+                // Add the unallowed message
+                if (this.parent) {
+                    this.parent.insertBefore(this.unallowed, this.element);
+                } else {
+                    this.unallowedParent.appendChild(this.unallowed);
                 }
             }
         }
-        
-        // If not found, prompt the user
-        return prompt("Could not find loan number automatically. Please enter it manually:");
+
+        add() {
+            if (this.element) {
+                // Remove the unallowed message
+                if (this.unallowed.parentNode) {
+                    this.unallowed.remove();
+                }
+                // Restore the element
+                this.element.style.display = this.originalDisplay || '';
+            }
+        }
     }
     
     // Function to create and show a Bootstrap modal that cannot be dismissed
@@ -286,14 +371,80 @@
         modal.show();
     }
     
+    // ########## LOAN NUMBER HANDLING ##########
+    // Extract loan number from the page
+    function getLoanNumber() {
+        // Look for the loan number in the specific HTML structure
+        const loanLabelElements = document.querySelectorAll('.fieldLabel');
+        
+        for (const labelElement of loanLabelElements) {
+            if (labelElement.textContent.trim() === 'Loan Number:') {
+                // Get the next sibling span with class "field normal-font"
+                const loanNumberElement = labelElement.parentElement.querySelector('.field.normal-font');
+                if (loanNumberElement) {
+                    return loanNumberElement.textContent.trim();
+                }
+            }
+        }
+        
+        // If not found, prompt the user
+        return prompt("Could not find loan number automatically. Please enter it manually:");
+    }
+    
+    // Function to wait for loan number to appear in the DOM
+    function waitForLoanNumber() {
+        return new Promise((resolve) => {
+            // First check if loan number is already available
+            const viewElement = new ViewElement();
+            if (viewElement.element) {
+                const loanNumber = getLoanNumber();
+                if (loanNumber) {
+                    resolve({ viewElement, loanNumber });
+                    return;
+                }
+            }
+            
+            // If not, observe DOM changes
+            const observer = new MutationObserver((mutationsList, observer) => {
+                const viewElement = new ViewElement();
+                if (viewElement.element) {
+                    const loanNumber = getLoanNumber();
+                    if (loanNumber) {
+                        observer.disconnect(); // Stop observing
+                        resolve({ viewElement, loanNumber });
+                    }
+                }
+            });
+            
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
+    
+    // Check if the loan number is allowed
+    async function checkLoanAccess(loanNumber) {
+        // Check if storedNumbersSet exists
+        if (!window.storedNumbersSet) {
+            showErrorModal("Loan number database not loaded. Please refresh the page and try again.");
+            console.error("storedNumbersSet is not available");
+            return false;
+        }
+        
+        // Check if the loan number is in the set
+        return window.storedNumbersSet.has(loanNumber);
+    }
+    
+    // ########## MAIN FUNCTIONALITY ##########
     // Main function to validate loan access
     async function validateLoanAccess() {
         try {
             // Ensure Bootstrap is loaded
             await ensureBootstrapLoaded();
             
-            // Get the loan number
-            const loanNumber = getLoanNumber();
+            // Wait for loan number to appear
+            const { viewElement, loanNumber } = await waitForLoanNumber();
             
             if (!loanNumber) {
                 console.log("No loan number provided.");
@@ -302,26 +453,39 @@
             
             console.log(`Found loan number: ${loanNumber}`);
             
-            // Check if storedNumbersSet exists
-            if (!window.storedNumbersSet) {
-                showErrorModal("Loan number database not loaded. Please refresh the page and try again.");
-                console.error("storedNumbersSet is not available");
-                return;
-            }
+            // Hide content initially
+            viewElement.remove();
             
-            // Check if the loan number is in the set
-            if (window.storedNumbersSet.has(loanNumber)) {
+            // Check if the loan number is allowed
+            const isAllowed = await checkLoanAccess(loanNumber);
+            
+            if (isAllowed) {
                 console.log(`Loan number ${loanNumber} is valid and you have access.`);
+                viewElement.add();
             } else {
                 console.error(`Loan number ${loanNumber} is not in the provisioned set.`);
                 showAccessDeniedModal();
             }
         } catch (error) {
             console.error("Error validating loan access:", error);
-            alert("An error occurred while validating loan access. Please try again later.");
+            showErrorModal("An error occurred while validating loan access. Please try again later.");
         }
     }
     
-    // Start the validation process
+    // Monitor URL changes to revalidate access when navigating
+    onValueChange(() => document.location.href, async (newUrl) => {
+        // Check if the URL contains loan-related paths
+        if (newUrl && (
+            newUrl.includes("loan") || 
+            newUrl.includes("application") || 
+            newUrl.includes("details") ||
+            newUrl.includes("view")
+        )) {
+            console.log("URL changed to loan-related page, validating access...");
+            validateLoanAccess();
+        }
+    });
+    
+    // Start the validation process for the current page
     validateLoanAccess();
 })();

@@ -18,6 +18,31 @@
 
   logDebug(`Loaded storedNumbersSet with ${storedNumbers.size} entries`);
 
+  // Function to monitor value changes, similar to msi-loan-ext.js approach
+  function onValueChange(
+    evalFunction,
+    callback,
+    options = {}
+  ) {
+    let lastValue = undefined;
+    const startTime = new Date().getTime();
+    const endTime = options.maxTime ? startTime + options.maxTime : null;
+    const intervalId = setInterval(async () => {
+      const currentTime = new Date().getTime();
+      if (endTime && currentTime > endTime) {
+        clearInterval(intervalId);
+        return;
+      }
+      let newValue = await evalFunction();
+      if (newValue === '') newValue = null;
+  
+      if (lastValue === newValue) return;
+      lastValue = newValue;
+  
+      await callback(newValue, lastValue);
+    }, 500);
+  }
+
   // Add a debounce function to prevent multiple rapid executions
   function debounce(func, wait) {
     let timeout;
@@ -212,6 +237,80 @@
     };
 
     checkElement();
+  }
+  
+  // Function to wait for loan table to appear, similar to waitForLoanNumber in msi-loan-ext.js
+  function waitForLoanTable() {
+    return new Promise((resolve) => {
+      const observer = new MutationObserver((mutationsList, observer) => {
+        const loanTable = findLoanTable();
+        if (loanTable) {
+          observer.disconnect(); // Stop observing
+          resolve(loanTable);
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+      
+      // Also check immediately in case the table is already there
+      const loanTable = findLoanTable();
+      if (loanTable) {
+        observer.disconnect();
+        resolve(loanTable);
+      }
+    });
+  }
+  
+  // Create a ViewElement class similar to msi-loan-ext.js
+  class TableViewElement {
+    constructor(tableElement) {
+      this.element = tableElement;
+      this.parent = this.element && this.element.parentElement;
+      this.originalRows = Array.from(this.element.querySelectorAll("tr")).filter(row => !row.querySelector("th"));
+      this.hiddenMessage = this.createHiddenMessage();
+      this.messageParent = document.querySelector(".content-area, main, #main-content, .content-details, .section-details") || document.body;
+    }
+    
+    createHiddenMessage() {
+      const message = document.createElement("div");
+      message.id = "offshore-access-message";
+      message.className = "warning";
+      message.textContent = "Loan is not provisioned to the user";
+      message.style.display = "none";
+      return message;
+    }
+
+    hideRow(row) {
+      if (row && row.parentElement) {
+        row.style.display = "none";
+      }
+    }
+    
+    showRow(row) {
+      if (row) {
+        row.style.display = "";
+      }
+    }
+    
+    showMessage(text, type = "info") {
+      // Remove any existing message
+      const existingMessage = document.getElementById("offshore-access-message");
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+      
+      this.hiddenMessage.textContent = text;
+      this.hiddenMessage.className = type;
+      this.hiddenMessage.style.display = "block";
+      this.messageParent.insertBefore(this.hiddenMessage, this.messageParent.firstChild);
+    }
+    
+    hideMessage() {
+      this.hiddenMessage.style.display = "none";
+    }
   }
 
   // Enhanced function to find the loan table with more selectors for Advanced version
@@ -495,56 +594,50 @@
     }
   }
 
-  // Main filtering function
-  function filterTable() {
+  // Main filtering function using the approach from msi-loan-ext.js
+  async function filterTable() {
     logDebug("Starting filterTable function");
 
-    // First try to find the table by ID
-    let loanTable = document.getElementById("todoTable");
-    if (loanTable) {
-      loanTable = loanTable.querySelector("tbody") || loanTable;
-    } else {
-      // If not found by ID, use the more general function
-      loanTable = findLoanTable();
-    }
-
+    // Wait for the loan table to appear in the DOM
+    const loanTable = await waitForLoanTable();
+    
     if (!loanTable) {
       console.error("Loan table not found");
       return;
     }
-
-    // Store all rows in memory if not already stored
-    if (!window.storedTableRows) {
-      window.storedTableRows = Array.from(loanTable.querySelectorAll("tr")).filter(row => !row.querySelector("th"));
-    }
-
+    
+    // Create a TableViewElement to manage the table
+    const tableView = new TableViewElement(loanTable);
+    
     // Check if exact search is selected
     const isExactSearch = document.getElementById('Filter_LoanExactSearch')?.checked || false;
     const loanNumber = document.getElementById('Filter_LoanNumber')?.value?.trim() || '';
 
-    // If exact search is selected, always clear the table
-    if (isExactSearch) {
-        // Clear the table
-        while (loanTable.firstChild) {
-            loanTable.removeChild(loanTable.firstChild);
-        }
-        // Hide table and related elements
-        updateTableInfo(0, true);
-        // Only show message if loan number is entered
-        if (loanNumber) {
-            if (storedNumbers.has(loanNumber)) {
-                showMessage("Loan is provisioned to user", "info");
-            } else {
-                showMessage("Loan is not provisioned to user", "warning");
-            }
-        } else {
-            showMessage("Please enter a loan number for exact search", "info");
-        }
-        return;
+    // If exact search is selected, handle it separately
+    if (isExactSearch && loanNumber) {
+      // Hide all rows
+      tableView.originalRows.forEach(row => {
+        tableView.hideRow(row);
+      });
+      
+      // Check if the loan number is in the allowed set
+      if (storedNumbers.has(loanNumber)) {
+        tableView.showMessage("Loan is provisioned to user", "info");
+      } else {
+        tableView.showMessage("Loan is not provisioned to user", "warning");
+      }
+      
+      // Update table info
+      updateTableInfo(0, true);
+      return;
+    } else if (isExactSearch) {
+      tableView.showMessage("Please enter a loan number for exact search", "info");
+      updateTableInfo(0, true);
+      return;
     }
 
-    // For non-exact search, ALWAYS filter based on storedNumbersSet
-    logDebug(`Found ${window.storedTableRows.length} rows in the table`);
+    // For non-exact search, filter based on storedNumbersSet
+    logDebug(`Processing ${tableView.originalRows.length} rows in the table`);
 
     let removedCount = 0;
     let visibleCount = 0;
@@ -558,16 +651,11 @@
     const servicerColumnIndex = findServicerColumnIndex(headerRow);
     logDebug(`Servicer column index: ${servicerColumnIndex}`);
 
-    // First clear the table
-    while (loanTable.firstChild) {
-      loanTable.removeChild(loanTable.firstChild);
-    }
-
-    // Then add back only the rows that match
-    window.storedTableRows.forEach((row, index) => {
+    // Process each row
+    for (const row of tableView.originalRows) {
       const cells = row.querySelectorAll("td");
       if (cells.length === 0) {
-        return;
+        continue;
       }
 
       let servicerValue = null;
@@ -632,63 +720,25 @@
       }
 
       if (servicerValue) {
-        let isMatch = false;
-
-        // Direct match
-        if (storedNumbers.has(servicerValue)) {
-          isMatch = true;
-          logDebug(`Direct match found for: ${servicerValue}`);
-        }
-
-        // Numeric match
-        if (!isMatch && /^\d+$/.test(servicerValue)) {
-          const numericValue = Number(servicerValue);
-          if (storedNumbers.has(numericValue)) {
-            isMatch = true;
-            logDebug(`Numeric match found for: ${servicerValue}`);
-          }
-        }
-
-        // String match
-        if (!isMatch && !isNaN(servicerValue)) {
-          const stringValue = String(servicerValue);
-          if (storedNumbers.has(stringValue)) {
-            isMatch = true;
-            logDebug(`String match found for: ${servicerValue}`);
-          }
-        }
-
-        // Partial match
-        if (!isMatch) {
-          storedNumbers.forEach((num) => {
-            const storedStr = String(num).toLowerCase();
-            const currentStr = String(servicerValue).toLowerCase();
-
-            if (
-              storedStr === currentStr ||
-              storedStr.includes(currentStr) ||
-              currentStr.includes(storedStr)
-            ) {
-              isMatch = true;
-              logDebug(`Partial match found: ${storedStr} contains/matches ${currentStr}`);
-            }
-          });
-        }
-
-        if (isMatch) {
-          loanTable.appendChild(row);
+        // Check if this loan number is allowed using the approach from msi-loan-ext.js
+        const isAllowed = await checkLoanAccess(servicerValue);
+        
+        if (isAllowed) {
+          tableView.showRow(row);
           visibleCount++;
           logDebug(`Showing row with loan: ${servicerValue}`);
         } else {
+          tableView.hideRow(row);
           removedCount++;
           restrictedLoans.push(servicerValue);
           logDebug(`Hiding row with loan: ${servicerValue}`);
         }
       } else {
+        tableView.hideRow(row);
         removedCount++;
-        logDebug(`No loan number found in row ${index}, keeping hidden`);
+        logDebug(`No loan number found in row, keeping hidden`);
       }
-    });
+    }
 
     logDebug(`Filtering complete: ${visibleCount} visible, ${removedCount} hidden`);
 
@@ -697,17 +747,63 @@
 
     // Show appropriate message based on filtering results
     if (visibleCount === 0 && removedCount > 0) {
-      showMessage("No loans found matching your access permissions.", "info");
+      tableView.showMessage("No loans found matching your access permissions.", "info");
     } else if (removedCount > 0) {
-      showMessage(
+      tableView.showMessage(
         `Showing ${visibleCount} loans you have access to. Some results were filtered due to access restrictions.`,
         "info"
       );
     } else {
-      showMessage("", "info"); // Clear any existing message
+      tableView.hideMessage(); // Clear any existing message
     }
 
     return { visibleCount, removedCount, restrictedLoans };
+  }
+  
+  // Function to check if a loan number is allowed, similar to checkNumbersBatch in msi-loan-ext.js
+  async function checkLoanAccess(loanNumber) {
+    if (!loanNumber) return false;
+    
+    // Direct match
+    if (storedNumbers.has(loanNumber)) {
+      logDebug(`Direct match found for: ${loanNumber}`);
+      return true;
+    }
+
+    // Numeric match
+    if (/^\d+$/.test(loanNumber)) {
+      const numericValue = Number(loanNumber);
+      if (storedNumbers.has(numericValue)) {
+        logDebug(`Numeric match found for: ${loanNumber}`);
+        return true;
+      }
+    }
+
+    // String match
+    if (!isNaN(loanNumber)) {
+      const stringValue = String(loanNumber);
+      if (storedNumbers.has(stringValue)) {
+        logDebug(`String match found for: ${loanNumber}`);
+        return true;
+      }
+    }
+
+    // Partial match
+    for (const num of storedNumbers) {
+      const storedStr = String(num).toLowerCase();
+      const currentStr = String(loanNumber).toLowerCase();
+
+      if (
+        storedStr === currentStr ||
+        storedStr.includes(currentStr) ||
+        currentStr.includes(storedStr)
+      ) {
+        logDebug(`Partial match found: ${storedStr} contains/matches ${currentStr}`);
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   // Function to update table visibility based on exact search
@@ -736,45 +832,86 @@
       }
     }
   }
+  
+  // Monitor URL changes to detect page navigation, similar to msi-loan-ext.js
+  function monitorPageChanges() {
+    // Monitor URL changes
+    onValueChange(() => document.location.href, async (newUrl, oldUrl) => {
+      if (newUrl === oldUrl) return;
+      
+      logDebug(`URL changed to: ${newUrl}`);
+      
+      // Wait a moment for the page to load
+      setTimeout(async () => {
+        // Run the filter on the new page
+        await filterTable();
+      }, 500);
+    });
+    
+    // Monitor DOM changes that might indicate table updates
+    const observer = new MutationObserver(debounce(async (mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && 
+            (mutation.target.tagName === 'TABLE' || 
+             mutation.target.tagName === 'TBODY' ||
+             mutation.target.closest('table'))) {
+          logDebug('Table content changed, reapplying filter');
+          await filterTable();
+          break;
+        }
+      }
+    }, 500));
+    
+    // Start observing the document with the configured parameters
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true 
+    });
+  }
 
   // Initialize the script
-  function initialize() {
+  async function initialize() {
     // Wait for the DOM to be fully loaded
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', setupEventListeners);
     } else {
-      setupEventListeners();
+      await setupEventListeners();
     }
+    
+    // Start monitoring page changes
+    monitorPageChanges();
+    
+    // Run the initial filter
+    await filterTable();
   }
 
   // Set up event listeners
-  function setupEventListeners() {
+  async function setupEventListeners() {
     const exactSearchCheckbox = document.getElementById('Filter_LoanExactSearch');
     const loanNumberInput = document.getElementById('Filter_LoanNumber');
     const applyFilterButton = document.getElementById('applyFilter');
 
     if (exactSearchCheckbox) {
-      exactSearchCheckbox.addEventListener('change', function() {
-        updateTableVisibility();
-        if (!this.checked) {
-          setTimeout(filterTable, 100); // Add small delay to ensure DOM is ready
-        }
+      exactSearchCheckbox.addEventListener('change', async function() {
+        await filterTable(); // Directly call filterTable which handles visibility
       });
     }
 
     if (loanNumberInput) {
-      loanNumberInput.addEventListener('input', function() {
-        updateTableVisibility();
-        if (!document.getElementById('Filter_LoanExactSearch').checked) {
-          setTimeout(filterTable, 100); // Add small delay to ensure DOM is ready
+      // Use the onValueChange approach for input monitoring
+      onValueChange(
+        () => loanNumberInput.value,
+        async (newValue) => {
+          if (newValue !== undefined) {
+            await filterTable();
+          }
         }
-      });
+      );
     }
 
     if (applyFilterButton) {
-      applyFilterButton.addEventListener('click', function() {
-        updateTableVisibility();
-        setTimeout(filterTable, 100); // Add small delay to ensure DOM is ready
+      applyFilterButton.addEventListener('click', async function() {
+        await filterTable();
       });
     }
   }
