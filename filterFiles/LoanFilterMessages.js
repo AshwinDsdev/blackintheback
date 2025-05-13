@@ -517,214 +517,6 @@
   }
 
   /**
-   * @function showAccessDeniedModal
-   * @description Creates and shows a Bootstrap modal that cannot be dismissed
-   */
-  function showAccessDeniedModal() {
-    // Remove any existing modal with the same ID
-    const existingModal = document.getElementById("accessDeniedModal");
-    if (existingModal) {
-      existingModal.remove();
-    }
-
-    // Create modal HTML - Note: no close button in header, static backdrop
-    const modalHTML = `
-        <div class="modal fade" id="accessDeniedModal" tabindex="-1" aria-labelledby="accessDeniedModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title" id="accessDeniedModalLabel">Access Denied</h5>
-                        <!-- No close button -->
-                    </div>
-                    <div class="modal-body">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-exclamation-triangle-fill text-danger me-3" style="font-size: 2rem;"></i>
-                            <p class="mb-0">You are not provisioned to access this loan</p>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="closeButton">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
-
-    // Append modal to body
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-
-    // Get the modal element
-    const modalElement = document.getElementById("accessDeniedModal");
-
-    // Initialize the Bootstrap modal with options to prevent dismissal
-    const modal = new bootstrap.Modal(modalElement, {
-      backdrop: "static", // Prevents closing when clicking outside
-      keyboard: false, // Prevents closing with ESC key
-    });
-
-    // Show the modal
-    modal.show();
-
-    // Add event listener to the "Close" button
-    document
-      .getElementById("closeButton")
-      .addEventListener("click", function () {
-        // Redirect to a safe page or reload the current page
-        window.location.href = window.location.origin;
-        // Alternative: reload the current page
-        // window.location.reload();
-      });
-
-    // Completely secure the page by hiding content and preventing interaction
-    securePageContent();
-
-    // Prevent modal from being closed programmatically
-    preventModalDismissal(modal, modalElement);
-  }
-
-  /**
-   * @function securePageContent
-   * @description Completely secures the page content by hiding everything except the modal
-   */
-  function securePageContent() {
-    // 1. Create a style element to hide ALL content except our modal
-    const styleElement = document.createElement("style");
-    styleElement.id = "loan-access-denied-styles";
-    styleElement.textContent = `
-            /* Hide everything except our modal */
-            body > *:not(#accessDeniedModal):not(script):not(link):not(style) {
-                display: none !important;
-            }
-            
-            /* Create a full-page overlay that sits behind the modal */
-            body::before {
-                content: "";
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(255, 255, 255, 0.95);
-                z-index: 1040;
-            }
-            
-            /* Make sure the modal is visible and on top */
-            #accessDeniedModal {
-                display: block !important;
-                z-index: 1050 !important;
-            }
-            
-            /* Ensure modal backdrop is visible */
-            .modal-backdrop {
-                z-index: 1045 !important;
-            }
-        `;
-    document.head.appendChild(styleElement);
-
-    // 2. Create a full-page overlay div that captures all clicks
-    const overlay = document.createElement("div");
-    overlay.id = "securityOverlay";
-    overlay.style.position = "fixed";
-    overlay.style.top = "0";
-    overlay.style.left = "0";
-    overlay.style.width = "100%";
-    overlay.style.height = "100%";
-    overlay.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
-    overlay.style.zIndex = "1039"; // Just below the modal backdrop
-    document.body.appendChild(overlay);
-
-    // 3. Disable all interactive elements on the page
-    const interactiveElements = document.querySelectorAll(
-      'a, button, input, select, textarea, [role="button"]'
-    );
-    interactiveElements.forEach((element) => {
-      if (
-        element.id !== "closeButton" &&
-        !element.closest("#accessDeniedModal")
-      ) {
-        element.disabled = true;
-        element.style.pointerEvents = "none";
-        if (element.tagName === "A") {
-          element.href = "javascript:void(0)";
-          element.onclick = function (e) {
-            e.preventDefault();
-            return false;
-          };
-        }
-      }
-    });
-
-    // 4. Prevent scrolling
-    document.body.style.overflow = "hidden";
-
-    // 5. Clear any sensitive data from the DOM
-    const sensitiveElements = document.querySelectorAll(
-      '[id*="loan"], [id*="Loan"], [class*="loan"], [class*="Loan"], [id*="account"], [id*="Account"]'
-    );
-    sensitiveElements.forEach((element) => {
-      if (!element.closest("#accessDeniedModal")) {
-        element.innerHTML = "";
-      }
-    });
-  }
-
-  /**
-   * @function preventModalDismissal
-   * @description Prevents the modal from being dismissed programmatically
-   * @param {Object} modal - The Bootstrap modal object
-   * @param {HTMLElement} modalElement - The modal DOM element
-   */
-  function preventModalDismissal(modal, modalElement) {
-    // Override the hide and dispose methods
-    const originalHide = modal.hide;
-    modal.hide = function () {
-      // Only allow hiding if it's triggered by our close button
-      const closeButtonClicked =
-        document.activeElement && document.activeElement.id === "closeButton";
-
-      if (!closeButtonClicked) {
-        console.warn("Attempted to dismiss modal programmatically");
-        return false;
-      }
-
-      // If close button was clicked, allow the default behavior
-      return originalHide.apply(this, arguments);
-    };
-
-    // Prevent programmatic removal
-    const observer = new MutationObserver(function (mutations) {
-      mutations.forEach(function (mutation) {
-        if (mutation.type === "childList" && mutation.removedNodes.length > 0) {
-          for (let i = 0; i < mutation.removedNodes.length; i++) {
-            if (
-              mutation.removedNodes[i].id === "accessDeniedModal" ||
-              mutation.removedNodes[i].contains(modalElement)
-            ) {
-              // If someone tries to remove our modal, reload the page
-              window.location.reload();
-              break;
-            }
-          }
-        }
-      });
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // Allow the modal to be closed only via our close button
-    modalElement.addEventListener("hide.bs.modal", function (event) {
-      const closeButtonClicked =
-        document.activeElement && document.activeElement.id === "closeButton";
-
-      if (!closeButtonClicked) {
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
-      }
-    });
-  }
-
-  /**
    * @function showErrorModal
    * @description Shows an error modal with a custom message
    * @param {string} message - The error message to display
@@ -738,26 +530,26 @@
 
     // Create modal HTML
     const modalHTML = `
-        <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true" data-bs-backdrop="static">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning">
-                        <h5 class="modal-title" id="errorModalLabel">Error</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-circle-fill text-warning me-3" style="font-size: 2rem;"></i>
+                        <p class="mb-0">${message}</p>
                     </div>
-                    <div class="modal-body">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-exclamation-circle-fill text-warning me-3" style="font-size: 2rem;"></i>
-                            <p class="mb-0">${message}</p>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
                 </div>
             </div>
         </div>
-        `;
+    </div>
+    `;
 
     // Append modal to body
     document.body.insertAdjacentHTML("beforeend", modalHTML);
@@ -813,11 +605,9 @@
         console.error(
           `Loan number ${loanNumber} is not in the provisioned set.`
         );
-        // First show the unallowed message via ViewElement
-        // This is already done by viewElement.remove()
-        
-        // Then show the modal for a more secure experience
-        showAccessDeniedModal();
+        // The unallowed message is already shown by viewElement.remove()
+        // Just keep the page visible so the message can be seen
+        pageUtils.showPage(true);
       }
     } catch (error) {
       console.error("Error processing page:", error);

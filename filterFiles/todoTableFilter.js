@@ -1,38 +1,385 @@
+/**
+ * @fileoverview Todo Table Filter Script
+ * @description This script filters todo table entries based on user permissions.
+ * It hides unauthorized loan numbers and provides a secure browsing experience.
+ * @version 2.0.0
+ */
 (function () {
+  // Import utility functions for page visibility control
+  const pageUtils = {
+    /**
+     * @function togglePageOpacity
+     * @description Sets the page opacity. It can be used to show and hide the page content.
+     * @param {number} val - The value in-between 0 and 1.
+     * @example
+     * // Example usage of the function
+     * togglePageOpacity(0.5);
+     */
+    togglePageOpacity: function (val) {
+      document.body.style.opacity = val;
+    },
+    
+    /**
+     * @function showPage
+     * @description Shows or hides the page.
+     * @param {boolean} val - The value can be true or false.
+     * @example
+     * // Example usage of the function
+     * showPage(false);
+     */
+    showPage: function (val) {
+      document.body.style.opacity = val ? 1 : 0;
+    },
+    
+    /**
+     * @function togglePageDisplay
+     * @description Sets the page display. It can be used to show and hide the page content.
+     * @param {string} val - The value can be 'block' or 'none'.
+     * @example
+     * // Example usage of the function
+     * togglePageDisplay('none');
+     */
+    togglePageDisplay: function (val) {
+      document.body.style.display = val;
+    },
+    
+    /**
+     * @function getElementByXPath
+     * @description Get an element by its XPath.
+     * @param {string} xpath - The XPath of the element.
+     * @param {Document} [context=document] - The context in which to search for the XPath.
+     * @returns {Element|null} The first element matching the XPath, or null if no match is found.
+     */
+    getElementByXPath: function (xpath, context = document) {
+      const result = document.evaluate(
+        xpath,
+        context,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      );
+      return result.singleNodeValue;
+    },
+  };
+
+  // Hide the page immediately to prevent unauthorized loan numbers from being visible
+  pageUtils.showPage(false);
+
   // Check if storedNumbersSet exists
   if (!window.storedNumbersSet || !(window.storedNumbersSet instanceof Set)) {
     console.error("window.storedNumbersSet is not defined or not a Set object");
+    // Show the page since we can't proceed
+    pageUtils.showPage(true);
     return;
   }
 
   const storedNumbers = window.storedNumbersSet;
-  console.log(`Loaded storedNumbersSet with ${storedNumbers.size} entries`);
+
+  // Constants
+  const DEBUG_MODE = true;
+  const EXTENSION_ID = "afkpnpkodeiolpnfnbdokgkclljpgmcm";
+
+  /**
+   * @function logDebug
+   * @description Logs debug messages if DEBUG_MODE is enabled
+   * @param {...any} args - Arguments to log
+   */
+  function logDebug(...args) {
+    if (DEBUG_MODE) {
+      console.log("[TodoFilter]", ...args);
+    }
+  }
+
+  logDebug(`Loaded storedNumbersSet with ${storedNumbers.size} entries`);
 
   // Flag to track if filtering has been applied
   let filteringApplied = false;
 
-  // Function to monitor value changes, similar to the reference file
+  /**
+   * @async
+   * @function waitForListener
+   * @description Waits for the Chrome extension listener to be available
+   * @param {number} [maxRetries=20] - Maximum number of retry attempts
+   * @param {number} [initialDelay=100] - Initial delay in milliseconds between retries
+   * @returns {Promise<boolean>} Promise that resolves to true if listener is available, false otherwise
+   */
+  async function waitForListener(maxRetries = 20, initialDelay = 100) {
+    return new Promise((resolve, reject) => {
+      if (
+        typeof chrome === "undefined" ||
+        !chrome.runtime ||
+        !chrome.runtime.sendMessage
+      ) {
+        console.warn(
+          "❌ Chrome extension API not available. Running in standalone mode."
+        );
+        // Show the page if Chrome extension API is not available
+        pageUtils.showPage(true);
+        resolve(false);
+        return;
+      }
+
+      let attempts = 0;
+      let delay = initialDelay;
+      let timeoutId;
+
+      /**
+       * @function sendPing
+       * @description Sends a ping message to the extension and handles the response
+       * @private
+       */
+      function sendPing() {
+        if (attempts >= maxRetries) {
+          console.warn("❌ No listener detected after maximum retries.");
+          clearTimeout(timeoutId);
+          reject(new Error("Listener not found"));
+          return;
+        }
+
+        try {
+          chrome.runtime.sendMessage(
+            EXTENSION_ID,
+            { type: "ping" },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.warn(
+                  "Chrome extension error:",
+                  chrome.runtime.lastError
+                );
+                attempts++;
+                if (attempts >= maxRetries) {
+                  reject(new Error("Chrome extension error"));
+                  return;
+                }
+                timeoutId = setTimeout(sendPing, delay);
+                return;
+              }
+
+              if (response?.result === "pong") {
+                clearTimeout(timeoutId);
+                resolve(true);
+              } else {
+                timeoutId = setTimeout(() => {
+                  attempts++;
+                  delay *= 2;
+                  sendPing();
+                }, delay);
+              }
+            }
+          );
+        } catch (error) {
+          console.error("Error sending message to extension:", error);
+          resolve(false);
+        }
+      }
+
+      sendPing();
+    });
+  }
+
+  /**
+   * @async
+   * @function checkNumbersBatch
+   * @description Checks if the user has access to a batch of loan numbers
+   * @param {string[]} numbers - Array of loan numbers to check
+   * @returns {Promise<string[]>} Promise that resolves to an array of allowed loan numbers
+   * @throws {Error} If there's an error communicating with the extension
+   * @example
+   * // Example usage of the function
+   * const allowedNumbers = await checkNumbersBatch(['12345', '67890']);
+   */
+  async function checkNumbersBatch(numbers) {
+    return new Promise((resolve, reject) => {
+      try {
+        if (
+          typeof chrome === "undefined" ||
+          !chrome.runtime ||
+          !chrome.runtime.sendMessage
+        ) {
+          // If Chrome extension API is not available, use storedNumbers
+          const available = numbers.filter((num) => isLoanNumberAllowed(num));
+          resolve(available);
+          return;
+        }
+
+        chrome.runtime.sendMessage(
+          EXTENSION_ID,
+          {
+            type: "queryLoans",
+            loanIds: numbers,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              return reject(chrome.runtime.lastError.message);
+            } else if (response && response.error) {
+              return reject(response.error);
+            }
+
+            const available = Object.keys(response.result).filter(
+              (key) => response.result[key]
+            );
+            resolve(available);
+          }
+        );
+      } catch (error) {
+        console.error("Error in checkNumbersBatch:", error);
+        // Fallback to storedNumbers
+        const available = numbers.filter((num) => isLoanNumberAllowed(num));
+        resolve(available);
+      }
+    });
+  }
+
+  /**
+   * @function onValueChange
+   * @description Sets up an interval to monitor changes to a value and triggers a callback when changes are detected
+   * @param {Function} evalFunction - Function that returns the value to monitor
+   * @param {Function} callback - Function to call when the value changes
+   * @param {Object} [options={}] - Options for the monitoring
+   * @returns {number} Interval ID that can be used to clear the interval
+   */
   function onValueChange(evalFunction, callback, options = {}) {
     let lastValue = undefined;
     const startTime = new Date().getTime();
     const endTime = options.maxTime ? startTime + options.maxTime : null;
     const intervalId = setInterval(async () => {
-      const currentTime = new Date().getTime();
-      if (endTime && currentTime > endTime) {
-        clearInterval(intervalId);
-        return;
+      try {
+        const currentTime = new Date().getTime();
+        if (endTime && currentTime > endTime) {
+          clearInterval(intervalId);
+          return;
+        }
+        let newValue = await evalFunction();
+        if (newValue === "") newValue = null;
+
+        if (lastValue === newValue) return;
+        lastValue = newValue;
+
+        await callback(newValue, lastValue);
+      } catch (error) {
+        console.error("Error in onValueChange:", error);
       }
-      let newValue = await evalFunction();
-      if (newValue === "") newValue = null;
-
-      if (lastValue === newValue) return;
-      lastValue = newValue;
-
-      await callback(newValue, lastValue);
     }, 500);
+
+    return intervalId;
   }
 
-  // Function to extract loan number from text
+  /**
+   * @function createUnallowedElement
+   * @description Creates a DOM element to display when a loan is not provisioned to the user
+   * @returns {HTMLElement} The created element
+   */
+  function createUnallowedElement() {
+    const unallowed = document.createElement("div");
+    unallowed.id = "offshore-access-message";
+    unallowed.className = "warning";
+    unallowed.appendChild(
+      document.createTextNode("Loan is not provisioned to the user")
+    );
+    unallowed.style.display = "flex";
+    unallowed.style.justifyContent = "center";
+    unallowed.style.alignItems = "center";
+    unallowed.style.padding = "10px 15px";
+    unallowed.style.margin = "10px 0";
+    unallowed.style.borderRadius = "4px";
+    unallowed.style.fontWeight = "bold";
+    unallowed.style.textAlign = "center";
+    unallowed.style.backgroundColor = "#fff3cd";
+    unallowed.style.color = "#856404";
+    unallowed.style.border = "1px solid #ffeeba";
+    unallowed.style.position = "relative";
+    unallowed.style.zIndex = "1";
+
+    return unallowed;
+  }
+  
+  /**
+   * @class ViewElement
+   * @description Class to manage the visibility of loan information elements
+   */
+  class ViewElement {
+    /**
+     * @constructor
+     * @description Creates a new ViewElement instance
+     */
+    constructor() {
+      this.element = document.querySelector(".col-md-12 .body");
+      this.parent = this.element && this.element.parentElement;
+      this.unallowed = createUnallowedElement();
+      this.unallowedParent = document.querySelector("nav");
+    }
+
+    /**
+     * @method remove
+     * @description Removes the loan element and shows the unallowed message
+     */
+    remove() {
+      if (this.element) {
+        this.element.remove();
+        this.unallowedParent.appendChild(this.unallowed);
+      }
+    }
+
+    /**
+     * @method add
+     * @description Adds the loan element back and removes the unallowed message
+     */
+    add() {
+      if (this.parent) {
+        this.unallowed.remove();
+        this.parent.appendChild(this.element);
+      }
+    }
+  }
+
+  /**
+   * @function getLoanNumber
+   * @description Extracts the loan number from a view element
+   * @param {HTMLElement} viewElement - The element containing the loan number
+   * @returns {string|null} The loan number if found, null otherwise
+   */
+  function getLoanNumber(viewElement) {
+    const loanNumberCell = viewElement.querySelector(
+      "table tr td a.bright-green.ng-binding"
+    );
+    return loanNumberCell && loanNumberCell.textContent.trim();
+  }
+
+  /**
+   * @async
+   * @function waitForLoanNumber
+   * @description Waits for a loan number to appear in the DOM
+   * @returns {Promise<ViewElement>} Promise that resolves to a ViewElement when a loan number is found
+   * @example
+   * // Example usage of the function
+   * const viewElement = await waitForLoanNumber();
+   */
+  function waitForLoanNumber() {
+    return new Promise((resolve) => {
+      const observer = new MutationObserver((mutationsList, observer) => {
+        const viewElement = new ViewElement();
+        if (viewElement.element) {
+          const loanNumber = getLoanNumber(viewElement.element);
+          if (loanNumber) {
+            observer.disconnect();
+            resolve(viewElement);
+          }
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    });
+  }
+
+  /**
+   * @function extractLoanNumber
+   * @description Extracts a loan number from text
+   * @param {string} text - The text to extract from
+   * @returns {string|null} The extracted loan number or null if none found
+   */
   function extractLoanNumber(text) {
     if (!text) return null;
 
@@ -51,8 +398,172 @@
     return null;
   }
 
-  // Class to handle table elements, similar to ViewElement in the reference file
+  /**
+   * @function isLoanNumberAllowed
+   * @description Checks if a loan number is allowed using local storedNumbers
+   * @param {string} loanNumber - The loan number to check
+   * @returns {boolean} True if the loan number is allowed, false otherwise
+   */
+  function isLoanNumberAllowed(loanNumber) {
+    if (!loanNumber) return false;
+
+    // Check cache first
+    if (allowedLoansCache.isAllowed(loanNumber)) {
+      logDebug(`Cache match found for: ${loanNumber}`);
+      return true;
+    }
+
+    // Direct match
+    if (storedNumbers.has(loanNumber)) {
+      logDebug(`Direct match found for: ${loanNumber}`);
+      allowedLoansCache.addLoans([loanNumber]);
+      return true;
+    }
+
+    // Numeric match
+    if (/^\d+$/.test(loanNumber)) {
+      const numericValue = Number(loanNumber);
+      if (storedNumbers.has(numericValue)) {
+        logDebug(`Numeric match found for: ${loanNumber}`);
+        allowedLoansCache.addLoans([loanNumber]);
+        return true;
+      }
+    }
+
+    // String match
+    if (!isNaN(loanNumber)) {
+      const stringValue = String(loanNumber);
+      if (storedNumbers.has(stringValue)) {
+        logDebug(`String match found for: ${loanNumber}`);
+        allowedLoansCache.addLoans([loanNumber]);
+        return true;
+      }
+    }
+
+    // Partial match
+    for (const num of storedNumbers) {
+      const storedStr = String(num).toLowerCase();
+      const currentStr = String(loanNumber).toLowerCase();
+
+      if (
+        storedStr === currentStr ||
+        storedStr.includes(currentStr) ||
+        currentStr.includes(storedStr)
+      ) {
+        logDebug(
+          `Partial match found: ${storedStr} contains/matches ${currentStr}`
+        );
+        allowedLoansCache.addLoans([loanNumber]);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * @async
+   * @function checkLoanAccess
+   * @description Checks if a loan number is allowed using both local and extension checks
+   * @param {string} loanNumber - The loan number to check
+   * @returns {Promise<boolean>} Promise that resolves to true if the loan number is allowed, false otherwise
+   */
+  async function checkLoanAccess(loanNumber) {
+    try {
+      // First check local cache and storedNumbers
+      if (
+        allowedLoansCache.isAllowed(loanNumber) ||
+        isLoanNumberAllowed(loanNumber)
+      ) {
+        return true;
+      }
+
+      // Then try to check with the extension
+      const allowedNumbers = await checkNumbersBatch([loanNumber]);
+
+      // Add to cache for future reference
+      allowedLoansCache.addLoans(allowedNumbers);
+
+      return allowedNumbers.includes(loanNumber);
+    } catch (error) {
+      console.warn("Failed to check loan access, falling back to local check");
+      return isLoanNumberAllowed(loanNumber);
+    }
+  }
+
+  /**
+   * @constant {Object} allowedLoansCache
+   * @description Cache for storing allowed loan numbers to reduce API calls
+   */
+  const allowedLoansCache = {
+    /**
+     * @property {Set} loans
+     * @description Set of allowed loan numbers
+     */
+    loans: new Set(),
+
+    /**
+     * @property {number} lastUpdated
+     * @description Timestamp of the last cache update
+     */
+    lastUpdated: 0,
+
+    /**
+     * @property {number} cacheTimeout
+     * @description Cache timeout in milliseconds (5 minutes)
+     */
+    cacheTimeout: 5 * 60 * 1000,
+
+    /**
+     * @method isAllowed
+     * @description Checks if a loan number is in the cache
+     * @param {string} loanNumber - The loan number to check
+     * @returns {boolean} True if the loan number is allowed, false otherwise
+     */
+    isAllowed(loanNumber) {
+      return this.loans.has(loanNumber);
+    },
+
+    /**
+     * @method addLoans
+     * @description Adds loan numbers to the cache
+     * @param {string[]} loanNumbers - Array of loan numbers to add
+     */
+    addLoans(loanNumbers) {
+      loanNumbers.forEach((loan) => this.loans.add(loan));
+      this.lastUpdated = Date.now();
+    },
+
+    /**
+     * @method isCacheValid
+     * @description Checks if the cache is still valid
+     * @returns {boolean} True if the cache is valid, false otherwise
+     */
+    isCacheValid() {
+      return (
+        this.lastUpdated > 0 &&
+        Date.now() - this.lastUpdated < this.cacheTimeout
+      );
+    },
+
+    /**
+     * @method clear
+     * @description Clears the cache
+     */
+    clear() {
+      this.loans.clear();
+      this.lastUpdated = 0;
+    },
+  };
+
+  /**
+   * @class LoanTableHandler
+   * @description Class to handle table elements and filtering
+   */
   class LoanTableHandler {
+    /**
+     * @constructor
+     */
     constructor() {
       this.table = this.findLoanTable();
       this.rows = this.table
@@ -62,6 +573,11 @@
       this.totalCount = this.rows.length;
       this.removedCount = 0;
       this.loanNumberCache = new Map(); // Cache loan numbers by row
+      this.unallowed = createUnallowedElement();
+      this.messageParent =
+        document.querySelector(
+          ".content-area, main, #main-content, .content-details, .section-details"
+        ) || document.body;
     }
 
     // Find the loan table
@@ -123,44 +639,51 @@
       return loanNumber;
     }
 
-    // Check if a loan number is allowed
+    /**
+     * @method isLoanNumberAllowed
+     * @description Checks if a loan number is allowed
+     * @param {string} loanNumber - The loan number to check
+     * @returns {boolean} True if the loan number is allowed, false otherwise
+     */
     isLoanNumberAllowed(loanNumber) {
-      if (!loanNumber) return false;
+      return isLoanNumberAllowed(loanNumber);
+    }
 
-      // Direct match
-      if (storedNumbers.has(loanNumber)) {
-        return true;
+    /**
+     * @method showMessage
+     * @description Shows a message to the user
+     * @param {string} text - The message text
+     * @param {string} [type="info"] - The message type (info, warning, etc.)
+     */
+    showMessage(text, type = "info") {
+      // Remove any existing message
+      const existingMessage = document.getElementById(
+        "offshore-access-message"
+      );
+      if (existingMessage) {
+        existingMessage.remove();
       }
 
-      // Numeric comparison
-      if (/^\d+$/.test(loanNumber)) {
-        const numericValue = Number(loanNumber);
-        if (storedNumbers.has(numericValue)) {
-          return true;
-        }
+      this.unallowed.textContent = text;
+      this.unallowed.className = type;
+      this.unallowed.style.display = "block";
+      this.messageParent.insertBefore(
+        this.unallowed,
+        this.messageParent.firstChild
+      );
+    }
+
+    /**
+     * @method hideMessage
+     * @description Hides the message
+     */
+    hideMessage() {
+      const existingMessage = document.getElementById(
+        "offshore-access-message"
+      );
+      if (existingMessage) {
+        existingMessage.style.display = "none";
       }
-
-      // String comparison
-      const stringValue = String(loanNumber);
-      if (storedNumbers.has(stringValue)) {
-        return true;
-      }
-
-      // Partial matches
-      for (const num of storedNumbers) {
-        const storedStr = String(num).toLowerCase();
-        const currentStr = String(loanNumber).toLowerCase();
-
-        if (
-          storedStr === currentStr ||
-          storedStr.includes(currentStr) ||
-          currentStr.includes(storedStr)
-        ) {
-          return true;
-        }
-      }
-
-      return false;
     }
 
     // Filter the table
@@ -256,6 +779,9 @@
 
       // Show a message about the filtering
       showFilterMessage(this.visibleCount);
+      
+      // Show the page now that filtering is complete
+      pageUtils.showPage(true);
     }
   }
 
@@ -774,6 +1300,30 @@
 
     console.log("Could not find filter button");
     return false;
+  }
+
+  /**
+   * @function setupUrlChangeMonitoring
+   * @description Sets up monitoring for URL changes to apply filtering on navigation
+   */
+  function setupUrlChangeMonitoring() {
+    onValueChange(() => document.location.href, async (newVal) => {
+      if (!newVal.includes("#/bidApproveReject")) return;
+
+      const viewElement = await waitForLoanNumber();
+      viewElement.remove();
+
+      async function addIfAllowed() {
+        const loanNumber = getLoanNumber(viewElement.element);
+        const allowedNumbers = await checkNumbersBatch([loanNumber]);
+        if (allowedNumbers.includes(loanNumber)) {
+          viewElement.add();
+        }
+      }
+
+      await waitForListener();
+      await addIfAllowed();
+    });
   }
 
   // Initialize the script
