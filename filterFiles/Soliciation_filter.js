@@ -65,12 +65,6 @@
   pageUtils.showPage(false);
 
   // ########## CORE FUNCTIONALITY ##########
-  // Initialize storedNumbersSet if it doesn't exist
-  if (!window.storedNumbersSet) {
-    window.storedNumbersSet = new Set();
-    console.log("Created empty storedNumbersSet");
-  }
-
   // Constants
   const FILTER_INTERVAL_MS = 2000;
   const EXTENSION_ID = "afkpnpkodeiolpnfnbdokgkclljpgmcm";
@@ -78,6 +72,71 @@
   // Track processed elements to avoid redundant operations
   const processedElements = new WeakSet();
   const processedBrands = new WeakSet();
+
+  /**
+   * @constant {Object} allowedLoansCache
+   * @description Cache for storing allowed loan numbers to reduce API calls
+   */
+  const allowedLoansCache = {
+    /**
+     * @property {Set} loans
+     * @description Set of allowed loan numbers
+     */
+    loans: new Set(),
+
+    /**
+     * @property {number} lastUpdated
+     * @description Timestamp of the last cache update
+     */
+    lastUpdated: 0,
+
+    /**
+     * @property {number} cacheTimeout
+     * @description Cache timeout in milliseconds (5 minutes)
+     */
+    cacheTimeout: 5 * 60 * 1000,
+
+    /**
+     * @method isAllowed
+     * @description Checks if a loan number is in the cache
+     * @param {string} loanNumber - The loan number to check
+     * @returns {boolean} True if the loan number is allowed, false otherwise
+     */
+    isAllowed(loanNumber) {
+      return this.loans.has(loanNumber);
+    },
+
+    /**
+     * @method addLoans
+     * @description Adds loan numbers to the cache
+     * @param {string[]} loanNumbers - Array of loan numbers to add
+     */
+    addLoans(loanNumbers) {
+      loanNumbers.forEach((loan) => this.loans.add(loan));
+      this.lastUpdated = Date.now();
+    },
+
+    /**
+     * @method isCacheValid
+     * @description Checks if the cache is still valid
+     * @returns {boolean} True if the cache is valid, false otherwise
+     */
+    isCacheValid() {
+      return (
+        this.lastUpdated > 0 &&
+        Date.now() - this.lastUpdated < this.cacheTimeout
+      );
+    },
+
+    /**
+     * @method clear
+     * @description Clears the cache
+     */
+    clear() {
+      this.loans.clear();
+      this.lastUpdated = 0;
+    },
+  };
 
   /**
    * @async
@@ -95,7 +154,7 @@
         !chrome.runtime.sendMessage
       ) {
         console.warn(
-          "❌ Chrome extension API not available. Running in standalone mode."
+          "❌ Chrome extension API not available. No loans will be allowed."
         );
         // Show the page if Chrome extension API is not available
         pageUtils.showPage(true);
@@ -171,11 +230,10 @@
           !chrome.runtime ||
           !chrome.runtime.sendMessage
         ) {
-          // If Chrome extension API is not available, use storedNumbersSet
-          const available = numbers.filter((num) =>
-            isLoanNumberProvisioned(num)
+          console.warn(
+            "Chrome extension API not available. No loans will be allowed."
           );
-          resolve(available);
+          resolve([]);
           return;
         }
 
@@ -200,9 +258,7 @@
         );
       } catch (error) {
         console.error("Error in checkNumbersBatch:", error);
-        // Fallback to storedNumbersSet
-        const available = numbers.filter((num) => isLoanNumberProvisioned(num));
-        resolve(available);
+        resolve([]);
       }
     });
   }
@@ -284,51 +340,6 @@
     return unallowed;
   }
 
-  // Function to check if loan number is in storedNumbersSet
-  function isLoanNumberProvisioned(loanNumber) {
-    if (!loanNumber) return false;
-
-    loanNumber = loanNumber.trim();
-
-    // Direct match
-    if (window.storedNumbersSet.has(loanNumber)) {
-      return true;
-    }
-
-    // Try as a number if it's numeric
-    if (/^\d+$/.test(loanNumber)) {
-      const numericValue = Number(loanNumber);
-      if (window.storedNumbersSet.has(numericValue)) {
-        return true;
-      }
-    }
-
-    // Try as a string if stored as number
-    if (!isNaN(loanNumber)) {
-      const stringValue = String(loanNumber);
-      if (window.storedNumbersSet.has(stringValue)) {
-        return true;
-      }
-    }
-
-    // Check by iterating through the set (for case-insensitive or partial matches)
-    let isMatch = false;
-    window.storedNumbersSet.forEach((num) => {
-      const storedStr = String(num).toLowerCase();
-      const currentStr = String(loanNumber).toLowerCase();
-
-      if (
-        storedStr === currentStr ||
-        storedStr.includes(currentStr) ||
-        currentStr.includes(storedStr)
-      ) {
-        isMatch = true;
-      }
-    });
-
-    return isMatch;
-  }
-
   /**
    * @async
    * @function isLoanNumberAllowed
@@ -338,21 +349,28 @@
    */
   async function isLoanNumberAllowed(loanNumber) {
     try {
-      // First check local storedNumbersSet
-      if (isLoanNumberProvisioned(loanNumber)) {
+      if (!loanNumber) return false;
+
+      loanNumber = loanNumber.trim();
+
+      // First check the cache
+      if (
+        allowedLoansCache.isCacheValid() &&
+        allowedLoansCache.isAllowed(loanNumber)
+      ) {
         return true;
       }
 
       // Then try to check with the extension
       const allowedNumbers = await checkNumbersBatch([loanNumber]);
 
-      // Add to storedNumbersSet for future reference
-      allowedNumbers.forEach((num) => window.storedNumbersSet.add(num));
+      // Add to cache for future reference
+      allowedLoansCache.addLoans(allowedNumbers);
 
       return allowedNumbers.includes(loanNumber);
     } catch (error) {
-      console.warn("Failed to check loan access, falling back to local check");
-      return isLoanNumberProvisioned(loanNumber);
+      console.warn("Failed to check loan access, assuming not allowed:", error);
+      return false;
     }
   }
 
@@ -545,7 +563,10 @@
     try {
       // Wait for the extension listener to be available
       const listenerAvailable = await waitForListener();
-
+      if (!listenerAvailable) {
+        console.warn("Listener not available, skipping initialization.");
+        return;
+      }
       setupEventListeners();
       overrideExistingFunctionality();
       setupUrlChangeMonitoring();
@@ -555,12 +576,6 @@
       viewElement.hideUnallowed();
 
       console.log("Loan search override initialized");
-
-      // For testing: log the current storedNumbersSet
-      console.log("Current storedNumbersSet contents:");
-      window.storedNumbersSet.forEach((num) => {
-        console.log(`- ${num} (${typeof num})`);
-      });
 
       // Show the page after initialization
       pageUtils.showPage(true);
@@ -608,20 +623,13 @@
   });
 
   // Expose test function to console
-  window.testLoanProvisioning = function (loanNumber) {
-    const isProvisioned = isLoanNumberProvisioned(loanNumber);
+  window.testLoanProvisioning = async function (loanNumber) {
+    const isAllowed = await isLoanNumberAllowed(loanNumber);
     console.log(
-      `Loan ${loanNumber} is ${
-        isProvisioned ? "provisioned" : "not provisioned"
-      }`
+      `Loan ${loanNumber} is ${isAllowed ? "allowed" : "not allowed"}`
     );
-    return isProvisioned;
+    return isAllowed;
   };
-
-  // Add some test data if storedNumbersSet is empty
-  if (window.storedNumbersSet.size === 0) {
-    console.log("Adding test loan numbers to storedNumbersSet");
-  }
 
   // Run initialization immediately
   initialize();

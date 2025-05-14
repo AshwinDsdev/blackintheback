@@ -14,22 +14,12 @@
      */
     showPage: function (val) {
       document.body.style.opacity = val ? 1 : 0;
-    }
+    },
   };
 
   // Hide the page immediately to prevent unauthorized loan numbers from being visible
   pageUtils.showPage(false);
 
-  // Reduce initial console logging
-  if (!window.storedNumbersSet || !(window.storedNumbersSet instanceof Set)) {
-    console.error("window.storedNumbersSet is not defined or not a Set object");
-    // Show the page since we can't proceed
-    pageUtils.showPage(true);
-    return;
-  }
-
-  const storedNumbers = window.storedNumbersSet;
-  
   // Constants
   const DEBUG_MODE = true;
   const EXTENSION_ID = "afkpnpkodeiolpnfnbdokgkclljpgmcm";
@@ -45,7 +35,72 @@
     }
   }
 
-  logDebug(`Loaded storedNumbersSet with ${storedNumbers.size} entries`);
+  /**
+   * @constant {Object} allowedLoansCache
+   * @description Cache for storing allowed loan numbers to reduce API calls
+   */
+  const allowedLoansCache = {
+    /**
+     * @property {Set} loans
+     * @description Set of allowed loan numbers
+     */
+    loans: new Set(),
+
+    /**
+     * @property {number} lastUpdated
+     * @description Timestamp of the last cache update
+     */
+    lastUpdated: 0,
+
+    /**
+     * @property {number} cacheTimeout
+     * @description Cache timeout in milliseconds (5 minutes)
+     */
+    cacheTimeout: 5 * 60 * 1000,
+
+    /**
+     * @method isAllowed
+     * @description Checks if a loan number is in the cache
+     * @param {string} loanNumber - The loan number to check
+     * @returns {boolean} True if the loan number is allowed, false otherwise
+     */
+    isAllowed(loanNumber) {
+      return this.loans.has(loanNumber);
+    },
+
+    /**
+     * @method addLoans
+     * @description Adds loan numbers to the cache
+     * @param {string[]} loanNumbers - Array of loan numbers to add
+     */
+    addLoans(loanNumbers) {
+      loanNumbers.forEach((loan) => this.loans.add(loan));
+      this.lastUpdated = Date.now();
+    },
+
+    /**
+     * @method isCacheValid
+     * @description Checks if the cache is still valid
+     * @returns {boolean} True if the cache is valid, false otherwise
+     */
+    isCacheValid() {
+      return (
+        this.lastUpdated > 0 &&
+        Date.now() - this.lastUpdated < this.cacheTimeout
+      );
+    },
+
+    /**
+     * @method clear
+     * @description Clears the cache
+     */
+    clear() {
+      this.loans.clear();
+      this.lastUpdated = 0;
+    },
+  };
+
+  logDebug("Initializing TodoFilter with Chrome extension integration");
 
   /**
    * @async
@@ -79,7 +134,8 @@
         if (attempts >= maxRetries) {
           console.warn("❌ No listener detected after maximum retries.");
           clearTimeout(timeoutId);
-          reject(new Error("Listener not found"));
+          pageUtils.showPage(true); // Show the page if listener is not found
+          resolve(false); // Resolve with false instead of rejecting
           return;
         }
 
@@ -95,7 +151,8 @@
                 );
                 attempts++;
                 if (attempts >= maxRetries) {
-                  reject(new Error("Chrome extension error"));
+                  pageUtils.showPage(true); // Show the page if there's an error
+                  resolve(false); // Resolve with false instead of rejecting
                   return;
                 }
                 timeoutId = setTimeout(sendPing, delay);
@@ -104,6 +161,7 @@
 
               if (response?.result === "pong") {
                 clearTimeout(timeoutId);
+                logDebug("Successfully connected to Chrome extension");
                 resolve(true);
               } else {
                 timeoutId = setTimeout(() => {
@@ -116,6 +174,7 @@
           );
         } catch (error) {
           console.error("Error sending message to extension:", error);
+          pageUtils.showPage(true); // Show the page if there's an error
           resolve(false);
         }
       }
@@ -134,13 +193,30 @@
   async function checkNumbersBatch(numbers) {
     return new Promise((resolve, reject) => {
       try {
-        if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
-          // If Chrome extension API is not available, use storedNumbers
-          const available = numbers.filter(num => checkLoanAccess(num));
-          resolve(available);
+        // Check if we already have these numbers in cache
+        if (allowedLoansCache.isCacheValid()) {
+          const cachedNumbers = numbers.filter((num) =>
+            allowedLoansCache.isAllowed(num)
+          );
+          if (cachedNumbers.length > 0) {
+            logDebug(`Using ${cachedNumbers.length} cached loan numbers`);
+            resolve(cachedNumbers);
+            return;
+          }
+        }
+
+        if (
+          typeof chrome === "undefined" ||
+          !chrome.runtime ||
+          !chrome.runtime.sendMessage
+        ) {
+          // If Chrome extension API is not available, show error and return empty array
+          console.error("Chrome extension API not available");
+          pageUtils.showPage(true);
+          resolve([]);
           return;
         }
-        
+
         chrome.runtime.sendMessage(
           EXTENSION_ID,
           {
@@ -149,22 +225,33 @@
           },
           (response) => {
             if (chrome.runtime.lastError) {
+              console.error("Chrome runtime error:", chrome.runtime.lastError);
+              pageUtils.showPage(true);
               return reject(chrome.runtime.lastError.message);
             } else if (response && response.error) {
+              console.error("Response error:", response.error);
+              pageUtils.showPage(true);
               return reject(response.error);
             }
 
             const available = Object.keys(response.result).filter(
               (key) => response.result[key]
             );
+
+            // Add to cache
+            allowedLoansCache.addLoans(available);
+
+            logDebug(
+              `Received ${available.length} allowed loan numbers out of ${numbers.length} requested`
+            );
             resolve(available);
           }
         );
       } catch (error) {
         console.error("Error in checkNumbersBatch:", error);
-        // Fallback to storedNumbers
-        const available = numbers.filter(num => checkLoanAccess(num));
-        resolve(available);
+        // Show page and return empty array on error
+        pageUtils.showPage(true);
+        resolve([]);
       }
     });
   }
@@ -177,11 +264,7 @@
    * @param {Object} [options={}] - Options for the monitoring
    * @returns {number} Interval ID that can be used to clear the interval
    */
-  function onValueChange(
-    evalFunction,
-    callback,
-    options = {}
-  ) {
+  function onValueChange(evalFunction, callback, options = {}) {
     let lastValue = undefined;
     const startTime = new Date().getTime();
     const endTime = options.maxTime ? startTime + options.maxTime : null;
@@ -193,17 +276,17 @@
           return;
         }
         let newValue = await evalFunction();
-        if (newValue === '') newValue = null;
-    
+        if (newValue === "") newValue = null;
+
         if (lastValue === newValue) return;
         lastValue = newValue;
-    
+
         await callback(newValue, lastValue);
       } catch (error) {
         console.error("Error in onValueChange:", error);
       }
     }, 500);
-    
+
     return intervalId;
   }
 
@@ -383,7 +466,7 @@
 
     checkElement();
   }
-  
+
   // Function to wait for loan table to appear, similar to waitForLoanNumber in msi-loan-ext.js
   function waitForLoanTable() {
     return new Promise((resolve) => {
@@ -397,9 +480,9 @@
 
       observer.observe(document.body, {
         childList: true,
-        subtree: true
+        subtree: true,
       });
-      
+
       // Also check immediately in case the table is already there
       const loanTable = findLoanTable();
       if (loanTable) {
@@ -408,7 +491,7 @@
       }
     });
   }
-  
+
   /**
    * @function createUnallowedElement
    * @description Creates a DOM element to display when a loan is not provisioned to the user
@@ -418,7 +501,9 @@
     const unallowed = document.createElement("div");
     unallowed.id = "offshore-access-message";
     unallowed.className = "warning";
-    unallowed.appendChild(document.createTextNode("Loan is not provisioned to the user"));
+    unallowed.appendChild(
+      document.createTextNode("Loan is not provisioned to the user")
+    );
     unallowed.style.display = "flex";
     unallowed.style.justifyContent = "center";
     unallowed.style.alignItems = "center";
@@ -448,9 +533,14 @@
     constructor(tableElement) {
       this.element = tableElement;
       this.parent = this.element && this.element.parentElement;
-      this.originalRows = Array.from(this.element.querySelectorAll("tr")).filter(row => !row.querySelector("th"));
+      this.originalRows = Array.from(
+        this.element.querySelectorAll("tr")
+      ).filter((row) => !row.querySelector("th"));
       this.unallowed = createUnallowedElement();
-      this.messageParent = document.querySelector(".content-area, main, #main-content, .content-details, .section-details") || document.body;
+      this.messageParent =
+        document.querySelector(
+          ".content-area, main, #main-content, .content-details, .section-details"
+        ) || document.body;
     }
 
     /**
@@ -463,7 +553,7 @@
         row.style.display = "none";
       }
     }
-    
+
     /**
      * @method showRow
      * @description Shows a table row
@@ -474,7 +564,7 @@
         row.style.display = "";
       }
     }
-    
+
     /**
      * @method showMessage
      * @description Shows a message to the user
@@ -483,23 +573,30 @@
      */
     showMessage(text, type = "info") {
       // Remove any existing message
-      const existingMessage = document.getElementById("offshore-access-message");
+      const existingMessage = document.getElementById(
+        "offshore-access-message"
+      );
       if (existingMessage) {
         existingMessage.remove();
       }
-      
+
       this.unallowed.textContent = text;
       this.unallowed.className = type;
       this.unallowed.style.display = "block";
-      this.messageParent.insertBefore(this.unallowed, this.messageParent.firstChild);
+      this.messageParent.insertBefore(
+        this.unallowed,
+        this.messageParent.firstChild
+      );
     }
-    
+
     /**
      * @method hideMessage
      * @description Hides the message
      */
     hideMessage() {
-      const existingMessage = document.getElementById("offshore-access-message");
+      const existingMessage = document.getElementById(
+        "offshore-access-message"
+      );
       if (existingMessage) {
         existingMessage.style.display = "none";
       }
@@ -713,25 +810,27 @@
   // Function to update the total count display and pagination
   function updateTableInfo(visibleCount, isExactSearch = false) {
     // Find the table container
-    const tableContainer = document.querySelector('.table-responsive, .table-container, .content-area');
-    
+    const tableContainer = document.querySelector(
+      ".table-responsive, .table-container, .content-area"
+    );
+
     if (isExactSearch) {
       // Hide all table-related elements
       if (tableContainer) {
-        tableContainer.style.display = 'none';
+        tableContainer.style.display = "none";
       }
       return;
     } else {
       // Show table container
       if (tableContainer) {
-        tableContainer.style.display = '';
+        tableContainer.style.display = "";
       }
 
       // Update count display
       let countDisplay = null;
-      const spans = document.querySelectorAll('div span');
+      const spans = document.querySelectorAll("div span");
       for (const span of spans) {
-        if (span.textContent.includes('Showing')) {
+        if (span.textContent.includes("Showing")) {
           countDisplay = span;
           break;
         }
@@ -741,47 +840,49 @@
         countDisplay.textContent = `Showing 1 to ${visibleCount} of ${visibleCount} entries`;
         logDebug(`Updated total count display to show ${visibleCount} entries`);
       } else {
-        logDebug('Could not find count display element');
+        logDebug("Could not find count display element");
       }
 
       // Update pagination
-      const pagination = document.querySelector('.pagination');
+      const pagination = document.querySelector(".pagination");
       if (pagination) {
         // Remove all page items except Previous and Next
-        const pageItems = pagination.querySelectorAll('.page-item');
-        pageItems.forEach(item => {
-          if (!item.querySelector('a').textContent.includes('Previous') && 
-              !item.querySelector('a').textContent.includes('Next')) {
+        const pageItems = pagination.querySelectorAll(".page-item");
+        pageItems.forEach((item) => {
+          if (
+            !item.querySelector("a").textContent.includes("Previous") &&
+            !item.querySelector("a").textContent.includes("Next")
+          ) {
             item.remove();
           }
         });
 
         // Add page numbers based on visible count
         if (visibleCount > 0) {
-          const nextItem = pagination.querySelector('.page-item:last-child');
+          const nextItem = pagination.querySelector(".page-item:last-child");
           if (nextItem) {
             // Add page 1 as active
-            const page1 = document.createElement('li');
-            page1.className = 'page-item active';
-            const page1Link = document.createElement('a');
-            page1Link.className = 'page-link';
-            page1Link.href = '#';
-            page1Link.textContent = '1';
+            const page1 = document.createElement("li");
+            page1.className = "page-item active";
+            const page1Link = document.createElement("a");
+            page1Link.className = "page-link";
+            page1Link.href = "#";
+            page1Link.textContent = "1";
             page1.appendChild(page1Link);
             nextItem.parentNode.insertBefore(page1, nextItem);
 
             // Update Previous button state
-            const prevItem = pagination.querySelector('.page-item:first-child');
+            const prevItem = pagination.querySelector(".page-item:first-child");
             if (prevItem) {
-              prevItem.classList.add('disabled');
+              prevItem.classList.add("disabled");
             }
           }
         } else {
           // If no visible items, disable both Previous and Next
-          const prevItem = pagination.querySelector('.page-item:first-child');
-          const nextItem = pagination.querySelector('.page-item:last-child');
-          if (prevItem) prevItem.classList.add('disabled');
-          if (nextItem) nextItem.classList.add('disabled');
+          const prevItem = pagination.querySelector(".page-item:first-child");
+          const nextItem = pagination.querySelector(".page-item:last-child");
+          if (prevItem) prevItem.classList.add("disabled");
+          if (nextItem) nextItem.classList.add("disabled");
         }
       }
     }
@@ -798,47 +899,52 @@
 
     // Wait for the loan table to appear in the DOM
     const loanTable = await waitForLoanTable();
-    
+
     if (!loanTable) {
       console.error("Loan table not found");
       // Show the page even if we couldn't find the table
       pageUtils.showPage(true);
       return;
     }
-    
+
     // Create a TableViewElement to manage the table
     const tableView = new TableViewElement(loanTable);
-    
+
     // Check if exact search is selected
-    const isExactSearch = document.getElementById('Filter_LoanExactSearch')?.checked || false;
-    const loanNumber = document.getElementById('Filter_LoanNumber')?.value?.trim() || '';
+    const isExactSearch =
+      document.getElementById("Filter_LoanExactSearch")?.checked || false;
+    const loanNumber =
+      document.getElementById("Filter_LoanNumber")?.value?.trim() || "";
 
     // If exact search is selected, handle it separately
     if (isExactSearch && loanNumber) {
       // Hide all rows
-      tableView.originalRows.forEach(row => {
+      tableView.originalRows.forEach((row) => {
         tableView.hideRow(row);
       });
-      
+
       // Check if the loan number is in the allowed set
       const isAllowed = await isLoanNumberAllowed(loanNumber);
-      
+
       if (isAllowed) {
         tableView.showMessage("Loan is provisioned to user", "info");
       } else {
         tableView.showMessage("Loan is not provisioned to user", "warning");
       }
-      
+
       // Update table info
       updateTableInfo(0, true);
-      
+
       // Show the page after processing
       pageUtils.showPage(true);
       return;
     } else if (isExactSearch) {
-      tableView.showMessage("Please enter a loan number for exact search", "info");
+      tableView.showMessage(
+        "Please enter a loan number for exact search",
+        "info"
+      );
       updateTableInfo(0, true);
-      
+
       // Show the page after processing
       pageUtils.showPage(true);
       return;
@@ -861,7 +967,7 @@
 
     // Collect all loan numbers first for batch checking
     const loanNumbersMap = new Map(); // Maps loan numbers to their rows
-    
+
     // Process each row to extract loan numbers
     for (const row of tableView.originalRows) {
       const cells = row.querySelectorAll("td");
@@ -889,15 +995,23 @@
         ) {
           servicerValue = extractLoanNumber(cell.textContent);
           if (servicerValue) {
-            logDebug(`Found loan number via data attribute/class: ${servicerValue}`);
+            logDebug(
+              `Found loan number via data attribute/class: ${servicerValue}`
+            );
             break;
           }
         }
       }
 
       // Method 2: Use the identified column index
-      if (!servicerValue && servicerColumnIndex >= 0 && cells.length > servicerColumnIndex) {
-        servicerValue = extractLoanNumber(cells[servicerColumnIndex].textContent);
+      if (
+        !servicerValue &&
+        servicerColumnIndex >= 0 &&
+        cells.length > servicerColumnIndex
+      ) {
+        servicerValue = extractLoanNumber(
+          cells[servicerColumnIndex].textContent
+        );
         if (servicerValue) {
           logDebug(`Found loan number via column index: ${servicerValue}`);
         }
@@ -910,7 +1024,9 @@
           if (/^\d{5,}$/.test(cellText) || /Loan\s*#?\s*\d+/i.test(cellText)) {
             servicerValue = extractLoanNumber(cellText);
             if (servicerValue) {
-              logDebug(`Found loan number via pattern matching: ${servicerValue}`);
+              logDebug(
+                `Found loan number via pattern matching: ${servicerValue}`
+              );
               break;
             }
           }
@@ -924,7 +1040,9 @@
           const numMatch = cellText.match(/\d{4,}/);
           if (numMatch) {
             servicerValue = numMatch[0];
-            logDebug(`Found potential loan number via numeric pattern: ${servicerValue}`);
+            logDebug(
+              `Found potential loan number via numeric pattern: ${servicerValue}`
+            );
             break;
           }
         }
@@ -947,19 +1065,19 @@
     // Get all unique loan numbers for batch checking
     const uniqueLoanNumbers = Array.from(loanNumbersMap.keys());
     logDebug(`Found ${uniqueLoanNumbers.length} unique loan numbers to check`);
-    
+
     if (uniqueLoanNumbers.length > 0) {
       try {
         // Try to use the extension API for batch checking
         const allowedNumbers = await checkNumbersBatch(uniqueLoanNumbers);
-        
+
         // Add to cache for future reference
         allowedLoansCache.addLoans(allowedNumbers);
-        
+
         // Process each loan number
         for (const [loanNumber, rows] of loanNumbersMap.entries()) {
           const isAllowed = allowedNumbers.includes(loanNumber);
-          
+
           for (const row of rows) {
             if (isAllowed) {
               tableView.showRow(row);
@@ -977,11 +1095,13 @@
         }
       } catch (error) {
         // Fallback to individual checking if batch check fails
-        logDebug(`Batch check failed, falling back to individual checks: ${error.message}`);
-        
+        logDebug(
+          `Batch check failed, falling back to individual checks: ${error.message}`
+        );
+
         for (const [loanNumber, rows] of loanNumbersMap.entries()) {
           const isAllowed = checkLoanAccess(loanNumber);
-          
+
           for (const row of rows) {
             if (isAllowed) {
               tableView.showRow(row);
@@ -1000,14 +1120,19 @@
       }
     }
 
-    logDebug(`Filtering complete: ${visibleCount} visible, ${removedCount} hidden`);
+    logDebug(
+      `Filtering complete: ${visibleCount} visible, ${removedCount} hidden`
+    );
 
     // Update the total count display and pagination
     updateTableInfo(visibleCount, isExactSearch);
 
     // Show appropriate message based on filtering results
     if (visibleCount === 0 && removedCount > 0) {
-      tableView.showMessage("No loans found matching your access permissions.", "info");
+      tableView.showMessage(
+        "No loans found matching your access permissions.",
+        "info"
+      );
     } else if (removedCount > 0) {
       tableView.showMessage(
         `Showing ${visibleCount} loans you have access to. Some results were filtered due to access restrictions.`,
@@ -1016,77 +1141,12 @@
     } else {
       tableView.hideMessage(); // Clear any existing message
     }
-    
+
     // Show the page after processing
     pageUtils.showPage(true);
 
     return { visibleCount, removedCount, restrictedLoans };
   }
-  
-  /**
-   * @constant {Object} allowedLoansCache
-   * @description Cache for storing allowed loan numbers to reduce API calls
-   */
-  const allowedLoansCache = {
-    /**
-     * @property {Set} loans
-     * @description Set of allowed loan numbers
-     */
-    loans: new Set(),
-    
-    /**
-     * @property {number} lastUpdated
-     * @description Timestamp of the last cache update
-     */
-    lastUpdated: 0,
-    
-    /**
-     * @property {number} cacheTimeout
-     * @description Cache timeout in milliseconds (5 minutes)
-     */
-    cacheTimeout: 5 * 60 * 1000,
-
-    /**
-     * @method isAllowed
-     * @description Checks if a loan number is in the cache
-     * @param {string} loanNumber - The loan number to check
-     * @returns {boolean} True if the loan number is allowed, false otherwise
-     */
-    isAllowed(loanNumber) {
-      return this.loans.has(loanNumber);
-    },
-
-    /**
-     * @method addLoans
-     * @description Adds loan numbers to the cache
-     * @param {string[]} loanNumbers - Array of loan numbers to add
-     */
-    addLoans(loanNumbers) {
-      loanNumbers.forEach((loan) => this.loans.add(loan));
-      this.lastUpdated = Date.now();
-    },
-
-    /**
-     * @method isCacheValid
-     * @description Checks if the cache is still valid
-     * @returns {boolean} True if the cache is valid, false otherwise
-     */
-    isCacheValid() {
-      return (
-        this.lastUpdated > 0 &&
-        Date.now() - this.lastUpdated < this.cacheTimeout
-      );
-    },
-
-    /**
-     * @method clear
-     * @description Clears the cache
-     */
-    clear() {
-      this.loans.clear();
-      this.lastUpdated = 0;
-    },
-  };
 
   /**
    * @function checkLoanAccess
@@ -1096,13 +1156,13 @@
    */
   function checkLoanAccess(loanNumber) {
     if (!loanNumber) return false;
-    
+
     // Check cache first
     if (allowedLoansCache.isAllowed(loanNumber)) {
       logDebug(`Cache match found for: ${loanNumber}`);
       return true;
     }
-    
+
     // Direct match
     if (storedNumbers.has(loanNumber)) {
       logDebug(`Direct match found for: ${loanNumber}`);
@@ -1140,15 +1200,17 @@
         storedStr.includes(currentStr) ||
         currentStr.includes(storedStr)
       ) {
-        logDebug(`Partial match found: ${storedStr} contains/matches ${currentStr}`);
+        logDebug(
+          `Partial match found: ${storedStr} contains/matches ${currentStr}`
+        );
         allowedLoansCache.addLoans([loanNumber]);
         return true;
       }
     }
-    
+
     return false;
   }
-  
+
   /**
    * @async
    * @function isLoanNumberAllowed
@@ -1159,16 +1221,19 @@
   async function isLoanNumberAllowed(loanNumber) {
     try {
       // First check local cache and storedNumbers
-      if (allowedLoansCache.isAllowed(loanNumber) || checkLoanAccess(loanNumber)) {
+      if (
+        allowedLoansCache.isAllowed(loanNumber) ||
+        checkLoanAccess(loanNumber)
+      ) {
         return true;
       }
 
       // Then try to check with the extension
       const allowedNumbers = await checkNumbersBatch([loanNumber]);
-      
+
       // Add to cache for future reference
       allowedLoansCache.addLoans(allowedNumbers);
-      
+
       return allowedNumbers.includes(loanNumber);
     } catch (error) {
       console.warn("Failed to check loan access, falling back to local check");
@@ -1178,64 +1243,73 @@
 
   // Function to update table visibility based on exact search
   function updateTableVisibility() {
-    const isExactSearch = document.getElementById('Filter_LoanExactSearch')?.checked || false;
-    const loanNumber = document.getElementById('Filter_LoanNumber')?.value?.trim() || '';
-    const todoTable = document.getElementById('todoTable');
-    const noDataMsg = document.getElementById('nodata');
+    const isExactSearch =
+      document.getElementById("Filter_LoanExactSearch")?.checked || false;
+    const loanNumber =
+      document.getElementById("Filter_LoanNumber")?.value?.trim() || "";
+    const todoTable = document.getElementById("todoTable");
+    const noDataMsg = document.getElementById("nodata");
 
     if (isExactSearch) {
       // Always clear the table when exact search is selected
       if (todoTable) {
-        const tbody = todoTable.querySelector('tbody') || todoTable;
+        const tbody = todoTable.querySelector("tbody") || todoTable;
         while (tbody.firstChild) {
           tbody.removeChild(tbody.firstChild);
         }
       }
       if (noDataMsg) {
-        noDataMsg.style.display = 'block';
+        noDataMsg.style.display = "block";
       }
     } else {
       // For non-exact search, show the table
       if (todoTable && noDataMsg) {
-        todoTable.style.display = 'block';
-        noDataMsg.style.display = 'none';
+        todoTable.style.display = "block";
+        noDataMsg.style.display = "none";
       }
     }
   }
-  
+
   // Monitor URL changes to detect page navigation, similar to msi-loan-ext.js
   function monitorPageChanges() {
     // Monitor URL changes
-    onValueChange(() => document.location.href, async (newUrl, oldUrl) => {
-      if (newUrl === oldUrl) return;
-      
-      logDebug(`URL changed to: ${newUrl}`);
-      
-      // Wait a moment for the page to load
-      setTimeout(async () => {
-        // Run the filter on the new page
-        await filterTable();
-      }, 500);
-    });
-    
-    // Monitor DOM changes that might indicate table updates
-    const observer = new MutationObserver(debounce(async (mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'childList' && 
-            (mutation.target.tagName === 'TABLE' || 
-             mutation.target.tagName === 'TBODY' ||
-             mutation.target.closest('table'))) {
-          logDebug('Table content changed, reapplying filter');
+    onValueChange(
+      () => document.location.href,
+      async (newUrl, oldUrl) => {
+        if (newUrl === oldUrl) return;
+
+        logDebug(`URL changed to: ${newUrl}`);
+
+        // Wait a moment for the page to load
+        setTimeout(async () => {
+          // Run the filter on the new page
           await filterTable();
-          break;
-        }
+        }, 500);
       }
-    }, 500));
-    
+    );
+
+    // Monitor DOM changes that might indicate table updates
+    const observer = new MutationObserver(
+      debounce(async (mutations) => {
+        for (const mutation of mutations) {
+          if (
+            mutation.type === "childList" &&
+            (mutation.target.tagName === "TABLE" ||
+              mutation.target.tagName === "TBODY" ||
+              mutation.target.closest("table"))
+          ) {
+            logDebug("Table content changed, reapplying filter");
+            await filterTable();
+            break;
+          }
+        }
+      }, 500)
+    );
+
     // Start observing the document with the configured parameters
-    observer.observe(document.body, { 
-      childList: true, 
-      subtree: true 
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
     });
   }
 
@@ -1248,20 +1322,20 @@
     try {
       // Wait for the extension listener to be available
       await waitForListener();
-      
+
       // Wait for the DOM to be fully loaded
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupEventListeners);
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupEventListeners);
       } else {
         await setupEventListeners();
       }
-      
+
       // Start monitoring page changes
       monitorPageChanges();
-      
+
       // Run the initial filter
       await filterTable();
-      
+
       logDebug("Todo Table Filter initialized successfully");
     } catch (error) {
       console.error("Error during initialization:", error);
@@ -1276,12 +1350,14 @@
    * @description Sets up event listeners for form elements
    */
   async function setupEventListeners() {
-    const exactSearchCheckbox = document.getElementById('Filter_LoanExactSearch');
-    const loanNumberInput = document.getElementById('Filter_LoanNumber');
-    const applyFilterButton = document.getElementById('applyFilter');
+    const exactSearchCheckbox = document.getElementById(
+      "Filter_LoanExactSearch"
+    );
+    const loanNumberInput = document.getElementById("Filter_LoanNumber");
+    const applyFilterButton = document.getElementById("applyFilter");
 
     if (exactSearchCheckbox) {
-      exactSearchCheckbox.addEventListener('change', async function() {
+      exactSearchCheckbox.addEventListener("change", async function () {
         // Hide the page while filtering
         pageUtils.showPage(false);
         await filterTable(); // filterTable will show the page when done
@@ -1303,7 +1379,7 @@
     }
 
     if (applyFilterButton) {
-      applyFilterButton.addEventListener('click', async function() {
+      applyFilterButton.addEventListener("click", async function () {
         // Hide the page while filtering
         pageUtils.showPage(false);
         await filterTable(); // filterTable will show the page when done
@@ -1312,17 +1388,17 @@
   }
 
   // Set up a cleanup function to handle page unload
-  window.addEventListener('beforeunload', function() {
+  window.addEventListener("beforeunload", function () {
     // Clear any intervals or timeouts
-    if (typeof urlMonitorId === 'number') {
+    if (typeof urlMonitorId === "number") {
       clearInterval(urlMonitorId);
     }
-    
+
     // Clear any observers
-    if (typeof observer === 'object' && observer.disconnect) {
+    if (typeof observer === "object" && observer.disconnect) {
       observer.disconnect();
     }
-    
+
     logDebug("Todo Table Filter cleanup complete");
   });
 
