@@ -5,15 +5,77 @@
  * @version 2.0.0
  */
 (function () {
+  // Immediately hide the page to prevent unauthorized content from being visible
+  document.body.style.opacity = 0;
+
+  // Add a style tag to ensure the page stays hidden until we're ready
+  const initialStyle = document.createElement("style");
+  initialStyle.textContent = "body { opacity: 0 !important; }";
+  document.head.appendChild(initialStyle);
+
   // Import utility functions for page visibility control
   const pageUtils = {
+    /**
+     * @function togglePageOpacity
+     * @description Sets the page opacity. It can be used to show and hide the page content.
+     * @param {number} val - The value in-between 0 and 1.
+     */
+    togglePageOpacity: function (val) {
+      document.body.style.opacity = val;
+    },
+
     /**
      * @function showPage
      * @description Shows or hides the page.
      * @param {boolean} val - The value can be true or false.
      */
     showPage: function (val) {
-      document.body.style.opacity = val ? 1 : 0;
+      if (val) {
+        // When showing the page, remove the !important style
+        const styleTag = document.getElementById("page-transition-style");
+        if (styleTag) {
+          styleTag.textContent = "body { transition: opacity 0.3s ease; }";
+        }
+        // Set opacity to 1 to show the page
+        document.body.style.opacity = 1;
+      } else {
+        // When hiding, make sure it's hidden with !important
+        const styleTag = document.getElementById("page-transition-style");
+        if (styleTag) {
+          styleTag.textContent =
+            "body { opacity: 0 !important; transition: opacity 0.3s ease; }";
+        } else {
+          // If the style tag doesn't exist yet, set opacity directly
+          document.body.style.opacity = 0;
+        }
+      }
+    },
+
+    /**
+     * @function togglePageDisplay
+     * @description Sets the page display. It can be used to show and hide the page content.
+     * @param {string} val - The value can be 'block' or 'none'.
+     */
+    togglePageDisplay: function (val) {
+      document.body.style.display = val;
+    },
+
+    /**
+     * @function getElementByXPath
+     * @description Get an element by its XPath.
+     * @param {string} xpath - The XPath of the element.
+     * @param {Document} [context=document] - The context in which to search for the XPath.
+     * @returns {Element|null} The first element matching the XPath, or null if no match is found.
+     */
+    getElementByXPath: function (xpath, context = document) {
+      const result = document.evaluate(
+        xpath,
+        context,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      );
+      return result.singleNodeValue;
     },
   };
 
@@ -21,8 +83,24 @@
   pageUtils.showPage(false);
 
   // Constants
-  const DEBUG_MODE = true;
+  const DEBUG_MODE = false; // Set to false to reduce console logs
+
+  // Suppress non-critical console warnings in production
+  if (!DEBUG_MODE) {
+    const originalWarn = console.warn;
+    console.warn = function (...args) {
+      // Only show critical warnings
+      if (
+        args[0] &&
+        typeof args[0] === "string" &&
+        (args[0].includes("Critical") || args[0].includes("Error"))
+      ) {
+        originalWarn.apply(console, args);
+      }
+    };
+  }
   const EXTENSION_ID = "afkpnpkodeiolpnfnbdokgkclljpgmcm";
+  const OBSERVER_DEBOUNCE_TIME = 500; // Debounce time for observers in milliseconds
 
   /**
    * @function logDebug
@@ -120,8 +198,8 @@
         console.warn(
           "❌ Chrome extension API not available. Running in standalone mode."
         );
-        // Show the page if Chrome extension API is not available
-        pageUtils.showPage(true);
+        // Do NOT show the page here - we'll handle visibility in the filterTable function
+        // pageUtils.showPage(false); // Keep the page hidden
         resolve(false);
         return;
       }
@@ -134,7 +212,8 @@
         if (attempts >= maxRetries) {
           console.warn("❌ No listener detected after maximum retries.");
           clearTimeout(timeoutId);
-          pageUtils.showPage(true); // Show the page if listener is not found
+          // Do NOT show the page here - we'll handle visibility in the filterTable function
+          // pageUtils.showPage(false); // Keep the page hidden
           resolve(false); // Resolve with false instead of rejecting
           return;
         }
@@ -151,7 +230,8 @@
                 );
                 attempts++;
                 if (attempts >= maxRetries) {
-                  pageUtils.showPage(true); // Show the page if there's an error
+                  // Do NOT show the page here - we'll handle visibility in the filterTable function
+                  // pageUtils.showPage(false); // Keep the page hidden
                   resolve(false); // Resolve with false instead of rejecting
                   return;
                 }
@@ -174,7 +254,8 @@
           );
         } catch (error) {
           console.error("Error sending message to extension:", error);
-          pageUtils.showPage(true); // Show the page if there's an error
+          // Do NOT show the page here - we'll handle visibility in the filterTable function
+          // pageUtils.showPage(false); // Keep the page hidden
           resolve(false);
         }
       }
@@ -300,7 +381,7 @@
     };
   }
 
-  // Add CSS styles for custom pagination if needed
+  // Add CSS styles for messages
   function addCustomStyles() {
     try {
       // Check if styles already exist
@@ -333,94 +414,15 @@
           color: #155724;
           border: 1px solid #c3e6cb;
         }
-        
-        /* Custom pagination styles */
-        #bottom-pager.page-container { 
-          padding: 0.1rem 1rem; 
-          border: 1px solid #ced1da; 
-          border-radius: 0.1rem; 
-          margin: 1px 0; 
-          display: flex; 
-          flex-direction: row; 
-          align-items: center;
-        }
-        #bottom-pager .page-numbers { 
-          display: inline-flex; 
-          flex-direction: row; 
-          align-items: center; 
-        }
-        #bottom-pager .page-selector, #bottom-pager .page-number { 
-          cursor: pointer; 
-          text-decoration: none; 
-          color: unset; 
-          padding: 1px 1px; 
-          border: 1px solid transparent; 
-          border-radius: 1px; 
-          margin: 0 1px; 
-        }
-        #bottom-pager .page-selector:not(.selected):hover, #bottom-pager .page-number:not(.selected):hover { 
-          background-color: #1F1F1F; 
-          color: #fff; 
-          font-weight: bold; 
-        }
-        #bottom-pager .page-number.selected { 
-          font-weight: bold; 
-          background-color: #C0C0C0; 
-          color: #000; 
-        }
-        #bottom-pager .page-previous.disabled, #bottom-pager .page-first.disabled, 
-        #bottom-pager .page-next.disabled, #bottom-pager .page-last.disabled { 
-          color: #a1a1a1; 
-          font-weight: bold; 
-          cursor: default; 
-        }
-        #bottom-pager .page-previous.disabled:hover, #bottom-pager .page-first.disabled:hover, 
-        #bottom-pager .page-next.disabled:hover, #bottom-pager .page-last.disabled:hover { 
-          background-color: unset; 
-          color: #a1a1a1; 
-        }
-        #bottom-pager .page-selector.page-number.hide,
-        .page-number.hide,
-        .hide { 
-          display: none !important; 
+        /* Hidden row styles - ensure they stay hidden */
+        .offshore-hidden-row {
+          display: none !important;
           visibility: hidden !important;
-        }
-        #bottom-pager .page-size-select { 
-          padding: 0.1rem 1.1rem 0.1rem 0.1rem; 
-          border-radius: 1px; 
-          border: 1px solid #ced1da !important;
-          max-width: max-content !important;
-          margin: 0 1px; 
-        }
-        #bottom-pager .page-size-container { 
-          display: inline-flex; 
-          flex-direction: row;
-          align-items: center;
-          margin: 1px 0; 
-        }
-        #bottom-pager .page-numbers.hidden .page-number, 
-        #bottom-pager .page-first.hidden, 
-        #bottom-pager .page-last.hidden { 
-          display: none; 
-        }
-        #bottom-pager .current-page-display { 
-          display: inline-flex; 
-          flex-direction: row; 
-          align-items: center; 
-        }
-        #bottom-pager .current-page-display.hidden { 
-          display: none; 
-        }
-        #bottom-pager .current-page-display .current-page { 
-          font-weight: bold; 
-          margin-left: 1px; 
-        }
-        #bottom-pager .select-page-num-select { 
-          padding: 0.1rem 1.1rem 0.1rem 0.1rem; 
-          border-radius: 1px; 
-          border: 1px solid #ced1da !important; 
-          width: unset !important;
-          margin: 0 1px; 
+          height: 0 !important;
+          overflow: hidden !important;
+          opacity: 0 !important;
+          position: absolute !important;
+          left: -9999px !important;
         }
       `;
 
@@ -470,22 +472,39 @@
   // Function to wait for loan table to appear, similar to waitForLoanNumber in msi-loan-ext.js
   function waitForLoanTable() {
     return new Promise((resolve) => {
+      // Make sure the page is hidden while waiting for the table
+      pageUtils.showPage(false);
+
+      // Set a timeout to resolve even if table is not found
+      const timeoutId = setTimeout(() => {
+        logDebug("Timeout waiting for loan table, proceeding anyway");
+        observer.disconnect();
+        resolve(null);
+        // Do NOT show the page here - we'll handle visibility in the filterTable function
+        // pageUtils.showPage(false); // Keep the page hidden
+      }, 10000); // 10 second timeout
+
       const observer = new MutationObserver((mutationsList, observer) => {
         const loanTable = findLoanTable();
         if (loanTable) {
+          clearTimeout(timeoutId);
           observer.disconnect(); // Stop observing
           resolve(loanTable);
         }
       });
 
+      // Use more specific observation parameters to reduce overhead
       observer.observe(document.body, {
         childList: true,
         subtree: true,
+        attributes: false,
+        characterData: false,
       });
 
       // Also check immediately in case the table is already there
       const loanTable = findLoanTable();
       if (loanTable) {
+        clearTimeout(timeoutId);
         observer.disconnect();
         resolve(loanTable);
       }
@@ -549,8 +568,15 @@
      * @param {HTMLElement} row - The row to hide
      */
     hideRow(row) {
-      if (row && row.parentElement) {
-        row.style.display = "none";
+      if (row) {
+        // Force the row to be hidden with !important to override any other styles
+        row.style.setProperty("display", "none", "important");
+
+        // Add a class for additional hiding mechanism
+        row.classList.add("offshore-hidden-row");
+
+        // Log for debugging
+        logDebug(`Hiding row: ${row.outerHTML.substring(0, 50)}...`);
       }
     }
 
@@ -561,7 +587,14 @@
      */
     showRow(row) {
       if (row) {
-        row.style.display = "";
+        // Remove the display property entirely
+        row.style.removeProperty("display");
+
+        // Remove the hiding class
+        row.classList.remove("offshore-hidden-row");
+
+        // Log for debugging
+        logDebug(`Showing row: ${row.outerHTML.substring(0, 50)}...`);
       }
     }
 
@@ -807,8 +840,8 @@
     return messageEl;
   }
 
-  // Function to update the total count display and pagination
-  function updateTableInfo(visibleCount, isExactSearch = false) {
+  // Function to handle table visibility for exact search
+  function handleTableVisibility(isExactSearch = false) {
     // Find the table container
     const tableContainer = document.querySelector(
       ".table-responsive, .table-container, .content-area"
@@ -825,66 +858,6 @@
       if (tableContainer) {
         tableContainer.style.display = "";
       }
-
-      // Update count display
-      let countDisplay = null;
-      const spans = document.querySelectorAll("div span");
-      for (const span of spans) {
-        if (span.textContent.includes("Showing")) {
-          countDisplay = span;
-          break;
-        }
-      }
-
-      if (countDisplay) {
-        countDisplay.textContent = `Showing 1 to ${visibleCount} of ${visibleCount} entries`;
-        logDebug(`Updated total count display to show ${visibleCount} entries`);
-      } else {
-        logDebug("Could not find count display element");
-      }
-
-      // Update pagination
-      const pagination = document.querySelector(".pagination");
-      if (pagination) {
-        // Remove all page items except Previous and Next
-        const pageItems = pagination.querySelectorAll(".page-item");
-        pageItems.forEach((item) => {
-          if (
-            !item.querySelector("a").textContent.includes("Previous") &&
-            !item.querySelector("a").textContent.includes("Next")
-          ) {
-            item.remove();
-          }
-        });
-
-        // Add page numbers based on visible count
-        if (visibleCount > 0) {
-          const nextItem = pagination.querySelector(".page-item:last-child");
-          if (nextItem) {
-            // Add page 1 as active
-            const page1 = document.createElement("li");
-            page1.className = "page-item active";
-            const page1Link = document.createElement("a");
-            page1Link.className = "page-link";
-            page1Link.href = "#";
-            page1Link.textContent = "1";
-            page1.appendChild(page1Link);
-            nextItem.parentNode.insertBefore(page1, nextItem);
-
-            // Update Previous button state
-            const prevItem = pagination.querySelector(".page-item:first-child");
-            if (prevItem) {
-              prevItem.classList.add("disabled");
-            }
-          }
-        } else {
-          // If no visible items, disable both Previous and Next
-          const prevItem = pagination.querySelector(".page-item:first-child");
-          const nextItem = pagination.querySelector(".page-item:last-child");
-          if (prevItem) prevItem.classList.add("disabled");
-          if (nextItem) nextItem.classList.add("disabled");
-        }
-      }
     }
   }
 
@@ -897,315 +870,409 @@
   async function filterTable() {
     logDebug("Starting filterTable function");
 
-    // Wait for the loan table to appear in the DOM
-    const loanTable = await waitForLoanTable();
+    // Make sure the page is hidden before we start filtering
+    pageUtils.showPage(false);
 
-    if (!loanTable) {
-      console.error("Loan table not found");
-      // Show the page even if we couldn't find the table
-      pageUtils.showPage(true);
-      return;
-    }
+    try {
+      // Check if we're in standalone mode (no Chrome extension)
+      const isStandaloneMode =
+        typeof chrome === "undefined" ||
+        !chrome.runtime ||
+        !chrome.runtime.sendMessage;
 
-    // Create a TableViewElement to manage the table
-    const tableView = new TableViewElement(loanTable);
-
-    // Check if exact search is selected
-    const isExactSearch =
-      document.getElementById("Filter_LoanExactSearch")?.checked || false;
-    const loanNumber =
-      document.getElementById("Filter_LoanNumber")?.value?.trim() || "";
-
-    // If exact search is selected, handle it separately
-    if (isExactSearch && loanNumber) {
-      // Hide all rows
-      tableView.originalRows.forEach((row) => {
-        tableView.hideRow(row);
-      });
-
-      // Check if the loan number is in the allowed set
-      const isAllowed = await isLoanNumberAllowed(loanNumber);
-
-      if (isAllowed) {
-        tableView.showMessage("Loan is provisioned to user", "info");
-      } else {
-        tableView.showMessage("Loan is not provisioned to user", "warning");
+      // If we're in standalone mode, we'll still proceed but with limited functionality
+      if (isStandaloneMode) {
+        console.warn("Running in standalone mode with limited functionality");
       }
 
-      // Update table info
-      updateTableInfo(0, true);
+      // Wait for the loan table to appear in the DOM
+      const loanTable = await waitForLoanTable();
 
-      // Show the page after processing
-      pageUtils.showPage(true);
-      return;
-    } else if (isExactSearch) {
-      tableView.showMessage(
-        "Please enter a loan number for exact search",
-        "info"
-      );
-      updateTableInfo(0, true);
-
-      // Show the page after processing
-      pageUtils.showPage(true);
-      return;
-    }
-
-    // For non-exact search, filter based on permissions
-    logDebug(`Processing ${tableView.originalRows.length} rows in the table`);
-
-    let removedCount = 0;
-    let visibleCount = 0;
-    let restrictedLoans = [];
-
-    // Find the header row - it might be in the table or in a thead
-    const headerRow =
-      loanTable.closest("table").querySelector("thead tr") ||
-      loanTable.closest("table").querySelector("tr:first-child");
-
-    const servicerColumnIndex = findServicerColumnIndex(headerRow);
-    logDebug(`Servicer column index: ${servicerColumnIndex}`);
-
-    // Collect all loan numbers first for batch checking
-    const loanNumbersMap = new Map(); // Maps loan numbers to their rows
-
-    // Process each row to extract loan numbers
-    for (const row of tableView.originalRows) {
-      const cells = row.querySelectorAll("td");
-      if (cells.length === 0) {
-        continue;
+      if (!loanTable) {
+        console.error("Loan table not found");
+        // Show the page even if we couldn't find the table
+        pageUtils.showPage(true);
+        return;
       }
 
-      let servicerValue = null;
+      // Create a TableViewElement to manage the table
+      const tableView = new TableViewElement(loanTable);
 
-      // Method 1: Check for data attributes or specific classes
-      for (let i = 0; i < cells.length; i++) {
-        const cell = cells[i];
-        if (
-          cell.getAttribute("data-column") === "Servicer" ||
-          cell.getAttribute("data-column") === "Loan" ||
-          cell.getAttribute("data-column") === "LoanNumber" ||
-          cell.classList.contains("servicer-column") ||
-          cell.classList.contains("loan-column") ||
-          cell.classList.contains("loan-number-column") ||
-          cell.textContent.includes("Servicer:") ||
-          cell.textContent.includes("Loan:") ||
-          cell.textContent.includes("Account:") ||
-          cell.textContent.includes("Task ID:") ||
-          cell.textContent.includes("Reference:")
-        ) {
-          servicerValue = extractLoanNumber(cell.textContent);
-          if (servicerValue) {
-            logDebug(
-              `Found loan number via data attribute/class: ${servicerValue}`
-            );
-            break;
-          }
-        }
-      }
+      // Check if exact search is selected
+      const isExactSearch =
+        document.getElementById("Filter_LoanExactSearch")?.checked || false;
+      const loanNumber =
+        document.getElementById("Filter_LoanNumber")?.value?.trim() || "";
 
-      // Method 2: Use the identified column index
-      if (
-        !servicerValue &&
-        servicerColumnIndex >= 0 &&
-        cells.length > servicerColumnIndex
-      ) {
-        servicerValue = extractLoanNumber(
-          cells[servicerColumnIndex].textContent
+      // If exact search is selected, handle it separately
+      if (isExactSearch && loanNumber) {
+        logDebug(`Handling exact search for loan number: ${loanNumber}`);
+
+        // Hide all rows
+        tableView.originalRows.forEach((row) => {
+          tableView.hideRow(row);
+        });
+
+        // Check if the loan number is in the allowed set using checkNumbersBatch
+        logDebug(`Checking if loan number ${loanNumber} is allowed...`);
+        const isAllowed = await isLoanNumberAllowed(loanNumber);
+        logDebug(
+          `Loan number ${loanNumber} is ${
+            isAllowed ? "allowed" : "not allowed"
+          }`
         );
-        if (servicerValue) {
-          logDebug(`Found loan number via column index: ${servicerValue}`);
+
+        // Get the table body
+        const tableBody =
+          loanTable.closest("table").querySelector("tbody") || loanTable;
+        logDebug(`Found table body: ${tableBody ? "Yes" : "No"}`);
+
+        // Clear existing rows for exact search
+        while (tableBody.firstChild) {
+          tableBody.removeChild(tableBody.firstChild);
         }
+
+        if (isAllowed) {
+          logDebug(
+            `Loan number ${loanNumber} is allowed, creating row to display it`
+          );
+          // Create a new row to show the allowed loan number
+          const newRow = document.createElement("tr");
+
+          // Get the number of columns from the header row
+          const headerRow =
+            loanTable.closest("table").querySelector("thead tr") ||
+            loanTable.closest("table").querySelector("tr:first-child");
+          const columnCount = headerRow
+            ? headerRow.querySelectorAll("th, td").length
+            : 1;
+          logDebug(`Table has ${columnCount} columns`);
+
+          // Create a cell for the loan number
+          const loanCell = document.createElement("td");
+          loanCell.textContent = loanNumber;
+          newRow.appendChild(loanCell);
+
+          // Fill the rest of the row with empty cells
+          for (let i = 1; i < columnCount; i++) {
+            const emptyCell = document.createElement("td");
+            emptyCell.textContent = "-";
+            newRow.appendChild(emptyCell);
+          }
+
+          // Add the row to the table
+          tableBody.appendChild(newRow);
+          logDebug(`Added row with loan number ${loanNumber} to the table`);
+
+          // Remove any existing unallowed elements
+          const existingUnallowed = document.getElementById(
+            "offshore-access-message"
+          );
+          if (existingUnallowed) {
+            existingUnallowed.remove();
+          }
+
+          tableView.showMessage("Loan is provisioned to user", "info");
+        } else {
+          logDebug(
+            `Loan number ${loanNumber} is not allowed, showing unallowed element`
+          );
+          // Create and show the unallowed element
+          const unallowedElement = createUnallowedElement();
+
+          // Clear any existing unallowed elements
+          const existingUnallowed = document.getElementById(
+            "offshore-access-message"
+          );
+          if (existingUnallowed) {
+            existingUnallowed.remove();
+          }
+
+          // Add the unallowed element to the table container
+          const tableContainer = loanTable.closest("table").parentElement;
+          if (tableContainer) {
+            tableContainer.appendChild(unallowedElement);
+            logDebug(`Added unallowed element to table container`);
+          } else {
+            // Fallback if table container not found
+            const contentArea = document.querySelector(
+              ".content-area, main, #main-content"
+            );
+            if (contentArea) {
+              contentArea.appendChild(unallowedElement);
+              logDebug(`Added unallowed element to content area`);
+            } else {
+              document.body.appendChild(unallowedElement);
+              logDebug(`Added unallowed element to body`);
+            }
+          }
+
+          tableView.showMessage("Loan is not provisioned to user", "warning");
+        }
+
+        // Handle table visibility for exact search
+        handleTableVisibility(true);
+
+        // Show the page after processing
+        pageUtils.showPage(true);
+        logDebug(
+          `Exact search processing complete for loan number: ${loanNumber}`
+        );
+        return;
+      } else if (isExactSearch) {
+        tableView.showMessage(
+          "Please enter a loan number for exact search",
+          "info"
+        );
+        handleTableVisibility(true);
+
+        // Show the page after processing
+        pageUtils.showPage(true);
+        return;
       }
 
-      // Method 3: Look for numeric patterns in any cell
-      if (!servicerValue) {
+      // For non-exact search, filter based on permissions
+      logDebug(`Processing ${tableView.originalRows.length} rows in the table`);
+
+      let removedCount = 0;
+      let visibleCount = 0;
+      let restrictedLoans = [];
+
+      // Find the header row - it might be in the table or in a thead
+      const headerRow =
+        loanTable.closest("table").querySelector("thead tr") ||
+        loanTable.closest("table").querySelector("tr:first-child");
+
+      const servicerColumnIndex = findServicerColumnIndex(headerRow);
+      logDebug(`Servicer column index: ${servicerColumnIndex}`);
+
+      // Collect all loan numbers first for batch checking
+      const loanNumbersMap = new Map(); // Maps loan numbers to their rows
+
+      // Process each row to extract loan numbers
+      for (const row of tableView.originalRows) {
+        const cells = row.querySelectorAll("td");
+        if (cells.length === 0) {
+          continue;
+        }
+
+        let servicerValue = null;
+
+        // Method 1: Check for data attributes or specific classes
         for (let i = 0; i < cells.length; i++) {
-          const cellText = cells[i].textContent.trim();
-          if (/^\d{5,}$/.test(cellText) || /Loan\s*#?\s*\d+/i.test(cellText)) {
-            servicerValue = extractLoanNumber(cellText);
+          const cell = cells[i];
+          if (
+            cell.getAttribute("data-column") === "Servicer" ||
+            cell.getAttribute("data-column") === "Loan" ||
+            cell.getAttribute("data-column") === "LoanNumber" ||
+            cell.classList.contains("servicer-column") ||
+            cell.classList.contains("loan-column") ||
+            cell.classList.contains("loan-number-column") ||
+            cell.textContent.includes("Servicer:") ||
+            cell.textContent.includes("Loan:") ||
+            cell.textContent.includes("Account:") ||
+            cell.textContent.includes("Task ID:") ||
+            cell.textContent.includes("Reference:")
+          ) {
+            servicerValue = extractLoanNumber(cell.textContent);
             if (servicerValue) {
               logDebug(
-                `Found loan number via pattern matching: ${servicerValue}`
+                `Found loan number via data attribute/class: ${servicerValue}`
               );
               break;
             }
           }
         }
-      }
 
-      // Method 4: Look for any cell with a number that might be a loan ID
-      if (!servicerValue) {
-        for (let i = 0; i < cells.length; i++) {
-          const cellText = cells[i].textContent.trim();
-          const numMatch = cellText.match(/\d{4,}/);
-          if (numMatch) {
-            servicerValue = numMatch[0];
-            logDebug(
-              `Found potential loan number via numeric pattern: ${servicerValue}`
-            );
-            break;
+        // Method 2: Use the identified column index
+        if (
+          !servicerValue &&
+          servicerColumnIndex >= 0 &&
+          cells.length > servicerColumnIndex
+        ) {
+          servicerValue = extractLoanNumber(
+            cells[servicerColumnIndex].textContent
+          );
+          if (servicerValue) {
+            logDebug(`Found loan number via column index: ${servicerValue}`);
           }
         }
-      }
 
-      if (servicerValue) {
-        // Store the row with its loan number for batch processing
-        if (!loanNumbersMap.has(servicerValue)) {
-          loanNumbersMap.set(servicerValue, []);
-        }
-        loanNumbersMap.get(servicerValue).push(row);
-      } else {
-        // Hide rows without loan numbers
-        tableView.hideRow(row);
-        removedCount++;
-        logDebug(`No loan number found in row, keeping hidden`);
-      }
-    }
-
-    // Get all unique loan numbers for batch checking
-    const uniqueLoanNumbers = Array.from(loanNumbersMap.keys());
-    logDebug(`Found ${uniqueLoanNumbers.length} unique loan numbers to check`);
-
-    if (uniqueLoanNumbers.length > 0) {
-      try {
-        // Try to use the extension API for batch checking
-        const allowedNumbers = await checkNumbersBatch(uniqueLoanNumbers);
-
-        // Add to cache for future reference
-        allowedLoansCache.addLoans(allowedNumbers);
-
-        // Process each loan number
-        for (const [loanNumber, rows] of loanNumbersMap.entries()) {
-          const isAllowed = allowedNumbers.includes(loanNumber);
-
-          for (const row of rows) {
-            if (isAllowed) {
-              tableView.showRow(row);
-              visibleCount++;
-              logDebug(`Showing row with loan: ${loanNumber}`);
-            } else {
-              tableView.hideRow(row);
-              removedCount++;
-              if (!restrictedLoans.includes(loanNumber)) {
-                restrictedLoans.push(loanNumber);
+        // Method 3: Look for numeric patterns in any cell
+        if (!servicerValue) {
+          for (let i = 0; i < cells.length; i++) {
+            const cellText = cells[i].textContent.trim();
+            if (
+              /^\d{5,}$/.test(cellText) ||
+              /Loan\s*#?\s*\d+/i.test(cellText)
+            ) {
+              servicerValue = extractLoanNumber(cellText);
+              if (servicerValue) {
+                logDebug(
+                  `Found loan number via pattern matching: ${servicerValue}`
+                );
+                break;
               }
-              logDebug(`Hiding row with loan: ${loanNumber}`);
             }
           }
         }
-      } catch (error) {
-        // Fallback to individual checking if batch check fails
-        logDebug(
-          `Batch check failed, falling back to individual checks: ${error.message}`
-        );
 
-        for (const [loanNumber, rows] of loanNumbersMap.entries()) {
-          const isAllowed = checkLoanAccess(loanNumber);
+        // Method 4: Look for any cell with a number that might be a loan ID
+        if (!servicerValue) {
+          for (let i = 0; i < cells.length; i++) {
+            const cellText = cells[i].textContent.trim();
+            const numMatch = cellText.match(/\d{4,}/);
+            if (numMatch) {
+              servicerValue = numMatch[0];
+              logDebug(
+                `Found potential loan number via numeric pattern: ${servicerValue}`
+              );
+              break;
+            }
+          }
+        }
 
-          for (const row of rows) {
-            if (isAllowed) {
-              tableView.showRow(row);
-              visibleCount++;
-              logDebug(`Showing row with loan: ${loanNumber}`);
-            } else {
-              tableView.hideRow(row);
-              removedCount++;
-              if (!restrictedLoans.includes(loanNumber)) {
-                restrictedLoans.push(loanNumber);
+        if (servicerValue) {
+          // Store the row with its loan number for batch processing
+          if (!loanNumbersMap.has(servicerValue)) {
+            loanNumbersMap.set(servicerValue, []);
+          }
+          loanNumbersMap.get(servicerValue).push(row);
+        } else {
+          // Hide rows without loan numbers
+          tableView.hideRow(row);
+          removedCount++;
+          logDebug(`No loan number found in row, keeping hidden`);
+        }
+      }
+
+      // Get all unique loan numbers for batch checking
+      const uniqueLoanNumbers = Array.from(loanNumbersMap.keys());
+      logDebug(
+        `Found ${uniqueLoanNumbers.length} unique loan numbers to check`
+      );
+
+      if (uniqueLoanNumbers.length > 0) {
+        try {
+          // Try to use the extension API for batch checking
+          const allowedNumbers = await checkNumbersBatch(uniqueLoanNumbers);
+
+          // Add to cache for future reference
+          allowedLoansCache.addLoans(allowedNumbers);
+
+          // Process each loan number
+          for (const [loanNumber, rows] of loanNumbersMap.entries()) {
+            const isAllowed = allowedNumbers.includes(loanNumber);
+
+            for (const row of rows) {
+              if (isAllowed) {
+                tableView.showRow(row);
+                visibleCount++;
+                logDebug(`Showing row with loan: ${loanNumber}`);
+              } else {
+                tableView.hideRow(row);
+                removedCount++;
+                if (!restrictedLoans.includes(loanNumber)) {
+                  restrictedLoans.push(loanNumber);
+                }
+                logDebug(`Hiding row with loan: ${loanNumber}`);
               }
-              logDebug(`Hiding row with loan: ${loanNumber}`);
+            }
+          }
+        } catch (error) {
+          // Fallback to individual checking if batch check fails
+          logDebug(
+            `Batch check failed, falling back to individual checks: ${error.message}`
+          );
+
+          for (const [loanNumber, rows] of loanNumbersMap.entries()) {
+            const isAllowed = checkLoanAccess(loanNumber);
+
+            for (const row of rows) {
+              if (isAllowed) {
+                tableView.showRow(row);
+                visibleCount++;
+                logDebug(`Showing row with loan: ${loanNumber}`);
+              } else {
+                tableView.hideRow(row);
+                removedCount++;
+                if (!restrictedLoans.includes(loanNumber)) {
+                  restrictedLoans.push(loanNumber);
+                }
+                logDebug(`Hiding row with loan: ${loanNumber}`);
+              }
             }
           }
         }
       }
-    }
 
-    logDebug(
-      `Filtering complete: ${visibleCount} visible, ${removedCount} hidden`
-    );
-
-    // Update the total count display and pagination
-    updateTableInfo(visibleCount, isExactSearch);
-
-    // Show appropriate message based on filtering results
-    if (visibleCount === 0 && removedCount > 0) {
-      tableView.showMessage(
-        "No loans found matching your access permissions.",
-        "info"
+      logDebug(
+        `Filtering complete: ${visibleCount} visible, ${removedCount} hidden`
       );
-    } else if (removedCount > 0) {
-      tableView.showMessage(
-        `Showing ${visibleCount} loans you have access to. Some results were filtered due to access restrictions.`,
-        "info"
-      );
-    } else {
-      tableView.hideMessage(); // Clear any existing message
+
+      // Handle table visibility
+      handleTableVisibility(isExactSearch);
+
+      // Force a re-check of all hidden rows to ensure they're properly hidden
+      const forceReapplyHiding = () => {
+        // Get all rows with the offshore-hidden-row class
+        const hiddenRows = document.querySelectorAll(".offshore-hidden-row");
+        logDebug(`Re-checking ${hiddenRows.length} hidden rows`);
+
+        // Force them to be hidden again
+        hiddenRows.forEach((row) => {
+          row.style.setProperty("display", "none", "important");
+          row.style.setProperty("visibility", "hidden", "important");
+        });
+
+        // Also check for any rows that should be hidden but aren't
+        for (const loanNumber of restrictedLoans) {
+          const rows = loanNumbersMap.get(loanNumber) || [];
+          for (const row of rows) {
+            if (row.style.display !== "none") {
+              logDebug(
+                `Found row that should be hidden but isn't: ${loanNumber}`
+              );
+              row.style.setProperty("display", "none", "important");
+              row.classList.add("offshore-hidden-row");
+            }
+          }
+        }
+      };
+
+      // Run the re-check
+      forceReapplyHiding();
+
+      // Schedule another check after a short delay to catch any late rendering
+      setTimeout(forceReapplyHiding, 100);
+
+      // Show the page after processing
+      pageUtils.showPage(true);
+
+      return { visibleCount, removedCount, restrictedLoans };
+    } catch (error) {
+      console.error("Error in filterTable:", error);
+
+      // Make sure the page is shown even if there's an error
+      pageUtils.showPage(true);
+
+      return { visibleCount: 0, removedCount: 0, restrictedLoans: [] };
     }
-
-    // Show the page after processing
-    pageUtils.showPage(true);
-
-    return { visibleCount, removedCount, restrictedLoans };
   }
 
   /**
    * @function checkLoanAccess
-   * @description Checks if a loan number is allowed using local storedNumbers
+   * @description Checks if a loan number is allowed using cache only
    * @param {string} loanNumber - The loan number to check
    * @returns {boolean} True if the loan number is allowed, false otherwise
    */
   function checkLoanAccess(loanNumber) {
     if (!loanNumber) return false;
 
-    // Check cache first
+    // Check cache only - all actual checks should go through checkNumbersBatch
     if (allowedLoansCache.isAllowed(loanNumber)) {
       logDebug(`Cache match found for: ${loanNumber}`);
       return true;
-    }
-
-    // Direct match
-    if (storedNumbers.has(loanNumber)) {
-      logDebug(`Direct match found for: ${loanNumber}`);
-      allowedLoansCache.addLoans([loanNumber]);
-      return true;
-    }
-
-    // Numeric match
-    if (/^\d+$/.test(loanNumber)) {
-      const numericValue = Number(loanNumber);
-      if (storedNumbers.has(numericValue)) {
-        logDebug(`Numeric match found for: ${loanNumber}`);
-        allowedLoansCache.addLoans([loanNumber]);
-        return true;
-      }
-    }
-
-    // String match
-    if (!isNaN(loanNumber)) {
-      const stringValue = String(loanNumber);
-      if (storedNumbers.has(stringValue)) {
-        logDebug(`String match found for: ${loanNumber}`);
-        allowedLoansCache.addLoans([loanNumber]);
-        return true;
-      }
-    }
-
-    // Partial match
-    for (const num of storedNumbers) {
-      const storedStr = String(num).toLowerCase();
-      const currentStr = String(loanNumber).toLowerCase();
-
-      if (
-        storedStr === currentStr ||
-        storedStr.includes(currentStr) ||
-        currentStr.includes(storedStr)
-      ) {
-        logDebug(
-          `Partial match found: ${storedStr} contains/matches ${currentStr}`
-        );
-        allowedLoansCache.addLoans([loanNumber]);
-        return true;
-      }
     }
 
     return false;
@@ -1214,30 +1281,41 @@
   /**
    * @async
    * @function isLoanNumberAllowed
-   * @description Checks if a loan number is allowed using both local and extension checks
+   * @description Checks if a loan number is allowed using checkNumbersBatch
    * @param {string} loanNumber - The loan number to check
    * @returns {Promise<boolean>} Promise that resolves to true if the loan number is allowed, false otherwise
    */
   async function isLoanNumberAllowed(loanNumber) {
     try {
-      // First check local cache and storedNumbers
-      if (
-        allowedLoansCache.isAllowed(loanNumber) ||
-        checkLoanAccess(loanNumber)
-      ) {
+      logDebug(`isLoanNumberAllowed: Checking loan number ${loanNumber}`);
+
+      // First check local cache
+      if (allowedLoansCache.isAllowed(loanNumber)) {
+        logDebug(
+          `isLoanNumberAllowed: Loan number ${loanNumber} found in cache`
+        );
         return true;
       }
 
-      // Then try to check with the extension
+      // Check with checkNumbersBatch (which will communicate with the extension)
+      logDebug(
+        `isLoanNumberAllowed: Checking loan number ${loanNumber} with checkNumbersBatch`
+      );
       const allowedNumbers = await checkNumbersBatch([loanNumber]);
+      logDebug(
+        `isLoanNumberAllowed: checkNumbersBatch returned ${allowedNumbers.length} allowed numbers`
+      );
 
       // Add to cache for future reference
-      allowedLoansCache.addLoans(allowedNumbers);
+      if (allowedNumbers.length > 0) {
+        allowedLoansCache.addLoans(allowedNumbers);
+      }
 
       return allowedNumbers.includes(loanNumber);
     } catch (error) {
-      console.warn("Failed to check loan access, falling back to local check");
-      return checkLoanAccess(loanNumber);
+      console.warn("Failed to check loan access:", error);
+      // If there's an error, we assume the loan is not allowed
+      return false;
     }
   }
 
@@ -1250,8 +1328,8 @@
     const todoTable = document.getElementById("todoTable");
     const noDataMsg = document.getElementById("nodata");
 
-    if (isExactSearch) {
-      // Always clear the table when exact search is selected
+    if (isExactSearch && !loanNumber) {
+      // Clear the table when exact search is selected but no loan number is entered
       if (todoTable) {
         const tbody = todoTable.querySelector("tbody") || todoTable;
         while (tbody.firstChild) {
@@ -1261,22 +1339,56 @@
       if (noDataMsg) {
         noDataMsg.style.display = "block";
       }
+
+      // Remove any existing unallowed elements
+      const existingUnallowed = document.getElementById(
+        "offshore-access-message"
+      );
+      if (existingUnallowed) {
+        existingUnallowed.remove();
+      }
+    } else if (isExactSearch && loanNumber) {
+      // When exact search is selected with a loan number, the table will be handled by filterTable
+      // Just make sure the noDataMsg is hidden
+      if (noDataMsg) {
+        noDataMsg.style.display = "none";
+      }
+      if (todoTable) {
+        todoTable.style.display = "block";
+      }
     } else {
       // For non-exact search, show the table
       if (todoTable && noDataMsg) {
         todoTable.style.display = "block";
         noDataMsg.style.display = "none";
       }
+
+      // Remove any existing unallowed elements
+      const existingUnallowed = document.getElementById(
+        "offshore-access-message"
+      );
+      if (existingUnallowed) {
+        existingUnallowed.remove();
+      }
     }
   }
 
   // Monitor URL changes to detect page navigation, similar to msi-loan-ext.js
   function monitorPageChanges() {
+    // Hide the page immediately to prevent unauthorized loan numbers from being visible
+    pageUtils.showPage(false);
+
+    // Keep track of the observer to avoid multiple instances
+    let tableObserver = null;
+
     // Monitor URL changes
     onValueChange(
       () => document.location.href,
       async (newUrl, oldUrl) => {
         if (newUrl === oldUrl) return;
+
+        // Hide the page immediately when URL changes
+        pageUtils.showPage(false);
 
         logDebug(`URL changed to: ${newUrl}`);
 
@@ -1285,32 +1397,91 @@
           // Run the filter on the new page
           await filterTable();
         }, 500);
+      },
+      { maxTime: 3600000 } // 1 hour max monitoring time
+    );
+
+    // Create a more efficient observer for table changes
+    const observeTableChanges = () => {
+      // Disconnect any existing observer
+      if (tableObserver) {
+        tableObserver.disconnect();
       }
-    );
 
-    // Monitor DOM changes that might indicate table updates
-    const observer = new MutationObserver(
-      debounce(async (mutations) => {
-        for (const mutation of mutations) {
-          if (
-            mutation.type === "childList" &&
-            (mutation.target.tagName === "TABLE" ||
-              mutation.target.tagName === "TBODY" ||
-              mutation.target.closest("table"))
-          ) {
-            logDebug("Table content changed, reapplying filter");
-            await filterTable();
-            break;
-          }
-        }
-      }, 500)
-    );
+      // Find tables to observe specifically instead of the entire body
+      const tables = document.querySelectorAll("table");
 
-    // Start observing the document with the configured parameters
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+      if (tables.length === 0) {
+        // If no tables found, observe the body but with a more specific filter
+        tableObserver = new MutationObserver(
+          debounce(async (mutations) => {
+            // Check if any tables were added
+            const tableAdded = mutations.some(
+              (mutation) =>
+                mutation.type === "childList" &&
+                Array.from(mutation.addedNodes).some(
+                  (node) =>
+                    node.nodeName === "TABLE" ||
+                    (node.nodeType === 1 && node.querySelector("table"))
+                )
+            );
+
+            if (tableAdded) {
+              // Hide the page while processing
+              pageUtils.showPage(false);
+
+              logDebug("Table added to DOM, reapplying filter");
+              await filterTable();
+
+              // Re-observe with the new table structure
+              observeTableChanges();
+            }
+          }, OBSERVER_DEBOUNCE_TIME)
+        );
+
+        tableObserver.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: false,
+          characterData: false,
+        });
+      } else {
+        // Observe each table directly for more efficient monitoring
+        tableObserver = new MutationObserver(
+          debounce(async (mutations) => {
+            // Only process if there are actual changes to the table content
+            const hasTableChanges = mutations.some(
+              (mutation) =>
+                mutation.type === "childList" &&
+                (mutation.target.tagName === "TABLE" ||
+                  mutation.target.tagName === "TBODY" ||
+                  mutation.target.tagName === "TR")
+            );
+
+            if (hasTableChanges) {
+              // Hide the page while processing
+              pageUtils.showPage(false);
+
+              logDebug("Table content changed, reapplying filter");
+              await filterTable();
+            }
+          }, OBSERVER_DEBOUNCE_TIME)
+        );
+
+        // Observe each table individually
+        tables.forEach((table) => {
+          tableObserver.observe(table, {
+            childList: true,
+            subtree: true,
+            attributes: false,
+            characterData: false,
+          });
+        });
+      }
+    };
+
+    // Start observing tables
+    observeTableChanges();
   }
 
   /**
@@ -1319,22 +1490,43 @@
    * @description Initializes the script and sets up event listeners
    */
   async function initialize() {
+    // Make sure the page is hidden during initialization
+    pageUtils.showPage(false);
+
     try {
+      // Update the CSS rule to allow for a smooth transition when we show the page
+      const style = document.createElement("style");
+      style.id = "page-transition-style";
+      style.textContent =
+        "body { opacity: 0 !important; transition: opacity 0.3s ease; }";
+
+      // Remove any existing initial style
+      const initialStyle = document.querySelector("style:not([id])");
+      if (initialStyle) {
+        initialStyle.remove();
+      }
+
+      document.head.appendChild(style);
+
       // Wait for the extension listener to be available
-      await waitForListener();
+      // await waitForListener();
 
       // Wait for the DOM to be fully loaded
       if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", setupEventListeners);
+        document.addEventListener("DOMContentLoaded", async () => {
+          await setupEventListeners();
+          // Start monitoring page changes
+          monitorPageChanges();
+          // Run the initial filter
+          await filterTable();
+        });
       } else {
         await setupEventListeners();
+        // Start monitoring page changes
+        monitorPageChanges();
+        // Run the initial filter
+        await filterTable();
       }
-
-      // Start monitoring page changes
-      monitorPageChanges();
-
-      // Run the initial filter
-      await filterTable();
 
       logDebug("Todo Table Filter initialized successfully");
     } catch (error) {
@@ -1379,10 +1571,29 @@
     }
 
     if (applyFilterButton) {
-      applyFilterButton.addEventListener("click", async function () {
+      applyFilterButton.addEventListener("click", async function (event) {
+        // Prevent default form submission if it's a button in a form
+        event.preventDefault();
+
+        // Log the current state
+        const isExactSearch =
+          document.getElementById("Filter_LoanExactSearch")?.checked || false;
+        const loanNumber =
+          document.getElementById("Filter_LoanNumber")?.value?.trim() || "";
+        logDebug(
+          `Apply Filter clicked - Exact Search: ${isExactSearch}, Loan Number: ${loanNumber}`
+        );
+
         // Hide the page while filtering
         pageUtils.showPage(false);
+
+        // Update table visibility first
+        updateTableVisibility();
+
+        // Run the filter
+        logDebug("Running filterTable...");
         await filterTable(); // filterTable will show the page when done
+        logDebug("filterTable completed");
       });
     }
   }
