@@ -483,6 +483,8 @@
    * @returns {Promise<void>}
    */
   async function filterTodoTable() {
+    // Reset the filtering flag at the start of each filtering operation
+    filteringApplied = false;
     // Find the todo table using various selectors
     let todoTable = document.querySelector(
       "table.new-ui-table.striped.heading-highlighted.border.shadow-regular.table.table-striped.table-hover"
@@ -512,7 +514,7 @@
     const loanNumbers = [];
     const rowMap = new Map();
 
-    rows.forEach((row) => {
+    rows.forEach((row, index) => {
       // First try to get loan number from data attribute (more reliable)
       let loanNumber = row.getAttribute("data-loan");
 
@@ -528,8 +530,11 @@
 
       if (loanNumber) {
         loanNumbers.push(loanNumber);
-        rowMap.set(loanNumber, row);
-        logDebug(`Found loan number: ${loanNumber} in row`);
+
+        // Handle multiple rows with the same loan number by using a compound key
+        const mapKey = `${loanNumber}_${index}`;
+        rowMap.set(mapKey, { row, loanNumber });
+        logDebug(`Found loan number: ${loanNumber} in row ${index}`);
       }
     });
 
@@ -541,20 +546,28 @@
     try {
       // Check all loan numbers in a batch
       const allowedNumbers = await checkNumbersBatch(loanNumbers);
-      logDebug(`Received ${allowedNumbers.length} allowed loan numbers`);
+      logDebug(
+        `Received ${
+          allowedNumbers.length
+        } allowed loan numbers: ${allowedNumbers.join(", ")}`
+      );
 
       // Process rows based on loan number authorization
-      rowMap.forEach((row, loanNumber) => {
+      rowMap.forEach((rowData, mapKey) => {
+        const { row, loanNumber } = rowData;
+
         if (allowedNumbers.includes(loanNumber)) {
           // This is an allowed loan number - make sure it's visible
-          logDebug(`Showing row for allowed loan number: ${loanNumber}`);
+          logDebug(
+            `Showing row for allowed loan number: ${loanNumber} (${mapKey})`
+          );
           row.style.display = "";
           row.style.visibility = "";
           row.classList.remove("offshore-hidden-row");
           row.removeAttribute("data-hidden");
         } else {
           // This loan number is not allowed - hide the row
-          logDebug(`Hiding row for loan number: ${loanNumber}`);
+          logDebug(`Hiding row for loan number: ${loanNumber} (${mapKey})`);
 
           // Hide the row using CSS
           row.style.display = "none";
