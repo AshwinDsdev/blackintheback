@@ -127,8 +127,13 @@
   }
 
   /**
+   * @async
    * @function waitForListener
-   * @description Waits for the extension listener to be ready
+   * @description Waits for the Chrome extension listener to be available
+   * @param {number} [maxRetries=20] - Maximum number of retry attempts
+   * @param {number} [initialDelay=100] - Initial delay in milliseconds between retries
+   * @returns {Promise<boolean>} Promise that resolves to true if listener is available, false otherwise
+   * @throws {Error} If listener is not found after maximum retries
    */
   async function waitForListener(maxRetries = 20, initialDelay = 100) {
     return new Promise((resolve, reject) => {
@@ -191,51 +196,34 @@
   }
 
   /**
+   * @async
    * @function checkNumbersBatch
-   * @description Checks which loan numbers are allowed using the extension
+   * @description Checks if the user has access to a batch of loan numbers
+   * @param {string[]} numbers - Array of loan numbers to check
+   * @returns {Promise<string[]>} Promise that resolves to an array of allowed loan numbers
+   * @throws {Error} If there's an error communicating with the extension
    */
   async function checkNumbersBatch(numbers) {
     return new Promise((resolve, reject) => {
-      if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
-        console.warn("❌ Chrome extension API not available. Running in standalone mode.");
-        // Return all numbers as allowed in standalone mode
-        resolve(numbers);
-        return;
-      }
-
-      try {
-        chrome.runtime.sendMessage(
-          EXTENSION_ID,
-          {
-            type: "queryLoans",
-            loanIds: numbers,
-          },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.warn("Chrome extension error:", chrome.runtime.lastError);
-              // Return all numbers as allowed if there's an error
-              resolve(numbers);
-              return;
-            }
-
-            if (response.error) {
-              console.warn("Extension returned error:", response.error);
-              // Return all numbers as allowed if there's an error
-              resolve(numbers);
-              return;
-            }
-
-            const available = Object.keys(response.result).filter(
-              (key) => response.result[key]
-            );
-            resolve(available);
+      chrome.runtime.sendMessage(
+        EXTENSION_ID,
+        {
+          type: "queryLoans",
+          loanIds: numbers,
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            return reject(chrome.runtime.lastError.message);
+          } else if (response.error) {
+            return reject(response.error);
           }
-        );
-      } catch (error) {
-        console.error("Error sending message to extension:", error);
-        // Return all numbers as allowed if there's an error
-        resolve(numbers);
-      }
+
+          const available = Object.keys(response.result).filter(
+            (key) => response.result[key]
+          );
+          resolve(available);
+        }
+      );
     });
   }
 
@@ -689,6 +677,9 @@
         console.log("✅ Extension listener connected successfully");
       } else {
         console.warn("⚠️ Extension listener not available, running in limited mode");
+        // Show the page if extension is not available
+        pageUtils.showPage(true);
+        return;
       }
       
       console.log('2. Adding filter styles');
