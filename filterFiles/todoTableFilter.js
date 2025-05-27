@@ -132,6 +132,14 @@
    */
   async function waitForListener(maxRetries = 20, initialDelay = 100) {
     return new Promise((resolve, reject) => {
+      if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+        console.warn("❌ Chrome extension API not available. Running in standalone mode.");
+        // Show the page if Chrome extension API is not available
+        pageUtils.showPage(true);
+        resolve(false);
+        return;
+      }
+
       let attempts = 0;
       let delay = initialDelay;
       let timeoutId;
@@ -139,35 +147,46 @@
       function sendPing() {
         if (attempts >= maxRetries) {
           console.warn("❌ No listener detected after maximum retries.");
-          clearTimeout(timeoutId)
+          clearTimeout(timeoutId);
           reject(new Error("Listener not found"));
           return;
         }
 
-        console.log(`🔄 Sending ping attempt ${attempts + 1}/${maxRetries}...`);
-
-        chrome.runtime.sendMessage(EXTENSION_ID,
-          {
-            type: 'ping',
-          },
-          (response) => {
-            if (response?.result === 'pong') {
-              console.log("✅ Listener detected!");
-              clearTimeout(timeoutId);
-              resolve(true);
-            } else {
-              console.warn("❌ No listener detected, retrying...");
-              timeoutId = setTimeout(() => {
+        try {
+          chrome.runtime.sendMessage(
+            EXTENSION_ID,
+            { type: "ping" },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.warn("Chrome extension error:", chrome.runtime.lastError);
                 attempts++;
-                delay *= 2; // Exponential backoff (100ms → 200ms → 400ms...)
-                sendPing();
-              }, delay);
+                if (attempts >= maxRetries) {
+                  reject(new Error("Chrome extension error"));
+                  return;
+                }
+                timeoutId = setTimeout(sendPing, delay);
+                return;
+              }
+
+              if (response?.result === "pong") {
+                clearTimeout(timeoutId);
+                resolve(true);
+              } else {
+                timeoutId = setTimeout(() => {
+                  attempts++;
+                  delay *= 2;
+                  sendPing();
+                }, delay);
+              }
             }
-          }
-        );
+          );
+        } catch (error) {
+          console.error("Error sending message to extension:", error);
+          resolve(false);
+        }
       }
 
-      sendPing(); // Start the first attempt
+      sendPing();
     });
   }
 
@@ -177,22 +196,46 @@
    */
   async function checkNumbersBatch(numbers) {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(EXTENSION_ID,
-        {
-          type: 'queryLoans',
-          loanIds: numbers
-        },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            return reject(chrome.runtime.lastError.message);
-          } else if (response.error) {
-            return reject(response.error);
-          }
+      if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+        console.warn("❌ Chrome extension API not available. Running in standalone mode.");
+        // Return all numbers as allowed in standalone mode
+        resolve(numbers);
+        return;
+      }
 
-          const available = Object.keys(response.result).filter(key => response.result[key]);
-          resolve(available);
-        }
-      );
+      try {
+        chrome.runtime.sendMessage(
+          EXTENSION_ID,
+          {
+            type: "queryLoans",
+            loanIds: numbers,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.warn("Chrome extension error:", chrome.runtime.lastError);
+              // Return all numbers as allowed if there's an error
+              resolve(numbers);
+              return;
+            }
+
+            if (response.error) {
+              console.warn("Extension returned error:", response.error);
+              // Return all numbers as allowed if there's an error
+              resolve(numbers);
+              return;
+            }
+
+            const available = Object.keys(response.result).filter(
+              (key) => response.result[key]
+            );
+            resolve(available);
+          }
+        );
+      } catch (error) {
+        console.error("Error sending message to extension:", error);
+        // Return all numbers as allowed if there's an error
+        resolve(numbers);
+      }
     });
   }
 
@@ -640,7 +683,13 @@
 
     try {
       console.log('1. Waiting for extension listener');
-      await waitForListener();
+      const listenerAvailable = await waitForListener();
+      
+      if (listenerAvailable) {
+        console.log("✅ Extension listener connected successfully");
+      } else {
+        console.warn("⚠️ Extension listener not available, running in limited mode");
+      }
       
       console.log('2. Adding filter styles');
       addFilterStyles();
