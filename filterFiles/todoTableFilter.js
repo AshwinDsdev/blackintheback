@@ -4,18 +4,12 @@
  * @version 3.0.0
  */
 (function () {
-  // Immediate test logging
-  console.log('=== SCRIPT LOADED ===');
-  console.log('Testing script execution...');
-  console.log('Current URL:', window.location.href);
-  console.log('Document ready state:', document.readyState);
-
   // Constants
   const DEBUG_MODE = false;
   const FILTER_INTERVAL_MS = 2000;
-  const ALLOWED_ROWS_CLASS = 'offshore-allowed-row';
-  const HIDDEN_ROWS_CLASS = 'offshore-hidden-row';
-  const EXTENSION_ID = 'afkpnpkodeiolpnfnbdokgkclljpgmcm';
+  const ALLOWED_ROWS_CLASS = "offshore-allowed-row";
+  const HIDDEN_ROWS_CLASS = "offshore-hidden-row";
+  const EXTENSION_ID = "afkpnpkodeiolpnfnbdokgkclljpgmcm";
 
   // State management
   let isFiltering = false;
@@ -26,12 +20,15 @@
   // Debug logging
   function debugLog(...args) {
     if (DEBUG_MODE) {
-      console.log('%c[TodoFilter Debug]', 'background: #4CAF50; color: white; padding: 2px 5px; border-radius: 2px;', ...args);
+      console.log(
+        "%c[TodoFilter Debug]",
+        "background: #4CAF50; color: white; padding: 2px 5px; border-radius: 2px;",
+        ...args
+      );
       // Also log to regular console for backup
-      console.log('[TodoFilter Debug]', ...args);
+      console.log("[TodoFilter Debug]", ...args);
     }
   }
-
 
   // Import utility functions for page visibility control
   const pageUtils = {
@@ -100,12 +97,81 @@
   };
 
   /**
-   * @function logDebug
-   * @description Logs debug messages if DEBUG_MODE is enabled
+   * @function createLoader
+   * @description Creates loader styles for better user experience
    */
-  function logDebug(...args) {
-    if (DEBUG_MODE) {
-      console.log("[TodoFilter]", ...args);
+  function createLoader() {
+    if (!document.getElementById("loader-styles")) {
+      const style = document.createElement("style");
+      style.id = "loader-styles";
+      style.textContent = `
+        #loaderOverlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: rgba(255, 255, 255, 0.95);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          transition: opacity 0.3s ease;
+        }
+        .spinner {
+          width: 60px;
+          height: 60px;
+          border: 6px solid #ccc;
+          border-top-color: #2b6cb0;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to {transform: rotate(360deg);}
+        }
+        #loaderOverlay.hidden {
+          opacity: 0;
+          pointer-events: none;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
+  /**
+   * @function createLoaderElement
+   * @description Creates the loader element
+   */
+  function createLoaderElement() {
+    const loader = document.createElement("div");
+    loader.id = "loaderOverlay";
+    const spinner = document.createElement("div");
+    spinner.className = "spinner";
+    loader.appendChild(spinner);
+    return loader;
+  }
+
+  /**
+   * @function showLoader
+   * @description Shows the loader
+   */
+  function showLoader() {
+    createLoader();
+    if (!document.getElementById("loaderOverlay")) {
+      const loader = createLoaderElement();
+      document.body.appendChild(loader);
+    }
+  }
+
+  /**
+   * @function hideLoader
+   * @description Hides the loader
+   */
+  function hideLoader() {
+    const loader = document.getElementById("loaderOverlay");
+    if (loader) {
+      loader.classList.add("hidden");
+      setTimeout(() => loader.remove(), 300);
     }
   }
 
@@ -137,9 +203,14 @@
    */
   async function waitForListener(maxRetries = 20, initialDelay = 100) {
     return new Promise((resolve, reject) => {
-      if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
-        console.warn("❌ Chrome extension API not available. Running in standalone mode.");
-        // Show the page if Chrome extension API is not available
+      if (
+        typeof chrome === "undefined" ||
+        !chrome.runtime ||
+        !chrome.runtime.sendMessage
+      ) {
+        console.warn(
+          "❌ Chrome extension API not available. Running in standalone mode."
+        );
         pageUtils.showPage(true);
         resolve(false);
         return;
@@ -157,38 +228,26 @@
           return;
         }
 
-        try {
-          chrome.runtime.sendMessage(
-            EXTENSION_ID,
-            { type: "ping" },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                console.warn("Chrome extension error:", chrome.runtime.lastError);
-                attempts++;
-                if (attempts >= maxRetries) {
-                  reject(new Error("Chrome extension error"));
-                  return;
-                }
-                timeoutId = setTimeout(sendPing, delay);
-                return;
-              }
+        debugLog(`🔄 Sending ping attempt ${attempts + 1}/${maxRetries}...`);
 
-              if (response?.result === "pong") {
-                clearTimeout(timeoutId);
-                resolve(true);
-              } else {
-                timeoutId = setTimeout(() => {
-                  attempts++;
-                  delay *= 2;
-                  sendPing();
-                }, delay);
-              }
+        chrome.runtime.sendMessage(
+          EXTENSION_ID,
+          { type: "ping" },
+          (response) => {
+            if (response?.result === "pong") {
+              debugLog("✅ Listener detected!");
+              clearTimeout(timeoutId);
+              resolve(true);
+            } else {
+              debugLog("❌ No listener detected, retrying...");
+              timeoutId = setTimeout(() => {
+                attempts++;
+                delay *= 2; // Exponential backoff
+                sendPing();
+              }, delay);
             }
-          );
-        } catch (error) {
-          console.error("Error sending message to extension:", error);
-          resolve(false);
-        }
+          }
+        );
       }
 
       sendPing();
@@ -229,7 +288,7 @@
 
   /**
    * @function addFilterStyles
-   * @description Adds necessary styles to the document
+   * @description Adds necessary styles to the document (optimized)
    */
   function addFilterStyles() {
     if (!document.getElementById("offshore-filter-styles")) {
@@ -241,6 +300,21 @@
         }
         .${ALLOWED_ROWS_CLASS} {
           display: table-row !important;
+        }
+        .offshore-unallowed-message {
+          position: fixed !important;
+          top: 50% !important;
+          left: 50% !important;
+          transform: translate(-50%, -50%) !important;
+          z-index: 999999 !important;
+          background: white !important;
+          padding: 20px !important;
+          border: 2px solid #ccc !important;
+          border-radius: 8px !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
         }
       `;
       document.head.appendChild(style);
@@ -264,19 +338,28 @@
 
   /**
    * @function getLoanNumberFromRow
-   * @description Gets loan number from a table row using different possible selectors
+   * @description Gets loan number from a table row using different possible selectors (optimized)
    */
   function getLoanNumberFromRow(row) {
-    // Try data-loan attribute first
-    const dataLoan = row.getAttribute('data-loan');
+    // Try data-loan attribute first (most efficient)
+    const dataLoan = row.getAttribute("data-loan");
     if (dataLoan) {
       return dataLoan.trim();
     }
 
-    // Try first cell content
+    // Try first cell content with early return
     const firstCell = row.querySelector("td:first-child");
-    if (firstCell) {
+    if (firstCell?.textContent) {
       const loanNumber = extractLoanNumber(firstCell.textContent);
+      if (loanNumber) {
+        return loanNumber;
+      }
+    }
+
+    // Try second cell as fallback (common pattern)
+    const secondCell = row.querySelector("td:nth-child(2)");
+    if (secondCell?.textContent) {
+      const loanNumber = extractLoanNumber(secondCell.textContent);
       if (loanNumber) {
         return loanNumber;
       }
@@ -287,20 +370,19 @@
 
   /**
    * @function enforceFiltering
-   * @description Enforces filtering on the table rows only
+   * @description Enforces filtering on the table rows only (optimized)
    */
   function enforceFiltering() {
+    if (isFiltering) return;
+
     pageUtils.showPage(false);
 
-    if (isFiltering) {
-      pageUtils.showPage(true);
-      return;
-    }
-
-    // Try both table selectors
+    // Use cached selectors for better performance
     const tables = [
-      document.querySelector("table.new-ui-table.striped.heading-highlighted.border.shadow-regular"),
-      document.querySelector("#todoTable table.table")
+      document.querySelector(
+        "table.new-ui-table.striped.heading-highlighted.border.shadow-regular"
+      ),
+      document.querySelector("#todoTable table.table"),
     ].filter(Boolean);
 
     if (tables.length === 0) {
@@ -308,18 +390,18 @@
       return;
     }
 
-    tables.forEach(table => {
+    // Use fragment to minimize DOM reflows
+    tables.forEach((table) => {
       const rows = table.querySelectorAll("tbody tr");
-      rows.forEach(row => {
+      const fragment = document.createDocumentFragment();
+
+      rows.forEach((row) => {
         const loanNumber = getLoanNumberFromRow(row);
         if (loanNumber) {
-          if (lastFilteredLoans.has(loanNumber)) {
-            row.classList.add(ALLOWED_ROWS_CLASS);
-            row.classList.remove(HIDDEN_ROWS_CLASS);
-          } else {
-            row.classList.add(HIDDEN_ROWS_CLASS);
-            row.classList.remove(ALLOWED_ROWS_CLASS);
-          }
+          // Use toggle for better performance
+          const isAllowed = lastFilteredLoans.has(loanNumber);
+          row.classList.toggle(ALLOWED_ROWS_CLASS, isAllowed);
+          row.classList.toggle(HIDDEN_ROWS_CLASS, !isAllowed);
         }
       });
     });
@@ -329,21 +411,25 @@
 
   /**
    * @function filterTodoTable
-   * @description Filters todo table entries based on allowed loan numbers
+   * @description Filters todo table entries based on allowed loan numbers (optimized)
    */
   async function filterTodoTable() {
     if (isFiltering) return;
     isFiltering = true;
 
     try {
-      // Try both table selectors
+      showLoader();
+
+      // Cache table selectors for better performance
       const tables = [
-        document.querySelector("table.new-ui-table.striped.heading-highlighted.border.shadow-regular"),
-        document.querySelector("#todoTable table.table")
+        document.querySelector(
+          "table.new-ui-table.striped.heading-highlighted.border.shadow-regular"
+        ),
+        document.querySelector("#todoTable table.table"),
       ].filter(Boolean);
 
       if (tables.length === 0) {
-        logDebug("No target tables found");
+        hideLoader();
         pageUtils.showPage(true);
         return;
       }
@@ -351,50 +437,50 @@
       const loanNumbers = [];
       const rowMap = new Map();
 
-      tables.forEach(table => {
+      // Use more efficient loop structure
+      tables.forEach((table) => {
         const rows = table.querySelectorAll("tbody tr");
-        rows.forEach((row, index) => {
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
           const loanNumber = getLoanNumberFromRow(row);
           if (loanNumber) {
             loanNumbers.push(loanNumber);
             rowMap.set(loanNumber, row);
-            logDebug(`Found loan number: ${loanNumber} in row ${index}`);
           }
-        });
+        }
       });
 
       if (!loanNumbers.length) {
-        logDebug("No loan numbers found in tables");
+        hideLoader();
         pageUtils.showPage(true);
         return;
       }
 
       const allowedNumbers = await checkNumbersBatch(loanNumbers);
-      logDebug(`Received ${allowedNumbers.length} allowed loan numbers: ${allowedNumbers.join(", ")}`);
+      // Use Set for O(1) lookups
+      const allowedSet = new Set(allowedNumbers);
+      lastFilteredLoans = allowedSet;
 
-      lastFilteredLoans = new Set(allowedNumbers);
-
+      // Batch DOM updates for better performance
       rowMap.forEach((row, loanNumber) => {
-        if (allowedNumbers.includes(loanNumber)) {
-          row.classList.add(ALLOWED_ROWS_CLASS);
-          row.classList.remove(HIDDEN_ROWS_CLASS);
-        } else {
-          row.classList.add(HIDDEN_ROWS_CLASS);
-          row.classList.remove(ALLOWED_ROWS_CLASS);
-        }
+        const isAllowed = allowedSet.has(loanNumber);
+        row.classList.toggle(ALLOWED_ROWS_CLASS, isAllowed);
+        row.classList.toggle(HIDDEN_ROWS_CLASS, !isAllowed);
       });
 
       addFilterStyles();
+      hideLoader();
       pageUtils.showPage(true);
-
     } catch (error) {
       console.error("Error filtering todo table:", error);
+      hideLoader();
       pageUtils.showPage(true);
     } finally {
       isFiltering = false;
+      // Reduced timeout for better responsiveness
       setTimeout(() => {
         pageUtils.showPage(true);
-      }, 500);
+      }, 200);
     }
   }
 
@@ -404,19 +490,18 @@
    */
   function createUnallowedElement() {
     const unallowed = document.createElement("span");
-    unallowed.appendChild(document.createTextNode("Loan is not provisioned to the user"));
+    unallowed.appendChild(
+      document.createTextNode("You are not provisioned for this loan.")
+    );
     unallowed.className = "body";
-    unallowed.style.cssText = `
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100px;
-      font-size: 20px;
-      font-weight: bold;
-      color: black;
-      position: relative;
-      z-index: -1;
-    `;
+    unallowed.style.display = "flex";
+    unallowed.style.justifyContent = "center";
+    unallowed.style.alignItems = "center";
+    unallowed.style.height = "100px";
+    unallowed.style.fontSize = "20px";
+    unallowed.style.fontWeight = "bold";
+    unallowed.style.color = "black";
+    unallowed.style.position = "relative";
     return unallowed;
   }
 
@@ -425,39 +510,31 @@
    * @description Shows the unallowed message and hides the table
    */
   function showUnallowedMessage() {
-    debugLog('Attempting to show unallowed message');
-
     try {
       // Remove any existing unallowed element
       if (unallowedElement) {
-        debugLog('Removing existing unallowed element');
         unallowedElement.remove();
         unallowedElement = null;
       }
 
       // Create new unallowed element
       unallowedElement = createUnallowedElement();
-      debugLog('Created new unallowed element');
 
       // Find the todo table container
-      const todoTable = document.querySelector('#todoTable');
-      debugLog('Todo table found:', !!todoTable);
+      const todoTable = document.querySelector("#todoTable");
 
       if (todoTable) {
-        debugLog('Hiding todo table');
-        todoTable.style.display = 'none';
+        todoTable.style.display = "none";
       }
 
       // Always append to body regardless of table presence
       document.body.appendChild(unallowedElement);
-      debugLog('Appended unallowed message to body');
 
       // Force a reflow to ensure the message is visible
       unallowedElement.offsetHeight;
-      debugLog('Message should be visible now');
 
       // Add a style tag to ensure the message stays on top
-      const styleTag = document.createElement('style');
+      const styleTag = document.createElement("style");
       styleTag.textContent = `
         .offshore-unallowed-message {
           position: fixed !important;
@@ -468,11 +545,8 @@
         }
       `;
       document.head.appendChild(styleTag);
-      debugLog('Added style tag for message visibility');
-
     } catch (error) {
-      console.error('Error showing unallowed message:', error);
-      debugLog('Error showing unallowed message:', error);
+      console.error("Error showing unallowed message:", error);
     }
   }
 
@@ -481,25 +555,20 @@
    * @description Hides the unallowed message and shows the table
    */
   function hideUnallowedMessage() {
-    debugLog('Attempting to hide unallowed message');
-
     try {
       if (unallowedElement) {
-        debugLog('Removing unallowed element');
         unallowedElement.remove();
         unallowedElement = null;
       }
 
-      const todoTable = document.querySelector('#todoTable');
+      const todoTable = document.querySelector("#todoTable");
       if (todoTable) {
-        debugLog('Showing todo table');
-        todoTable.style.display = 'block';
+        todoTable.style.display = "block";
       } else {
-        debugLog('Todo table not found');
+        debugLog("Todo table not found");
       }
     } catch (error) {
-      console.error('Error hiding unallowed message:', error);
-      debugLog('Error hiding unallowed message:', error);
+      console.error("Error hiding unallowed message:", error);
     }
   }
 
@@ -508,123 +577,107 @@
    * @description Handles exact search filter functionality
    */
   async function handleExactSearch() {
-    console.log('=== SETTING UP EXACT SEARCH ===');
-    
     // Get the elements we know exist
-    const exactSearchCheckbox = document.querySelector('#Filter_LoanExactSearch');
-    const loanNumberInput = document.querySelector('#Filter_LoanNumber');
-
-    console.log('Found elements:', {
-      exactSearchCheckbox: !!exactSearchCheckbox,
-      loanNumberInput: !!loanNumberInput
-    });
+    const exactSearchCheckbox = document.querySelector(
+      "#Filter_LoanExactSearch"
+    );
+    const loanNumberInput = document.querySelector("#Filter_LoanNumber");
 
     if (!exactSearchCheckbox || !loanNumberInput) {
-      console.error('Required elements not found');
+      console.error("Required elements not found");
       return;
     }
 
     // Function to handle the exact search check
     async function performExactSearch() {
-      console.log('=== PERFORMING EXACT SEARCH ===');
-      
       const loanNumber = loanNumberInput.value.trim();
-      console.log('Checking loan number:', loanNumber);
-      
+
       try {
         const allowedNumbers = await checkNumbersBatch([loanNumber]);
-        console.log('Allowed numbers:', allowedNumbers);
-        
+
         if (!allowedNumbers.includes(loanNumber)) {
-          console.log('Loan number not allowed, showing message');
-          
+          console.log("Loan number not allowed, showing message");
+
           // Remove any existing message first
-          const existingMessage = document.querySelector('.offshore-unallowed-message');
+          const existingMessage = document.querySelector(
+            ".offshore-unallowed-message"
+          );
           if (existingMessage) {
             existingMessage.remove();
-            console.log('Removed existing message');
           }
 
           // Create and show message using the same styling as msi-loan-ext.js
           const message = createUnallowedElement();
-          message.className = 'offshore-unallowed-message';
-          
+          message.className = "offshore-unallowed-message";
+
           // Add to body and force reflow
           document.body.appendChild(message);
           message.offsetHeight; // Force reflow
-          console.log('Message element added to body:', message);
-          
+
           // Hide the table
-          const todoTable = document.querySelector('#todoTable');
+          const todoTable = document.querySelector("#todoTable");
           if (todoTable) {
-            todoTable.style.display = 'none';
-            console.log('Table hidden');
+            todoTable.style.display = "none";
           } else {
-            console.log('Table not found');
+            console.log("Table not found");
           }
 
           // Prevent the form from submitting
           return false;
         } else {
-          console.log('Loan number allowed, hiding message');
           // Remove any existing message
-          const existingMessage = document.querySelector('.offshore-unallowed-message');
+          const existingMessage = document.querySelector(
+            ".offshore-unallowed-message"
+          );
           if (existingMessage) {
             existingMessage.remove();
-            console.log('Existing message removed');
+            console.log("Existing message removed");
           }
-          
+
           // Show the table
-          const todoTable = document.querySelector('#todoTable');
+          const todoTable = document.querySelector("#todoTable");
           if (todoTable) {
-            todoTable.style.display = 'block';
-            console.log('Table shown');
+            todoTable.style.display = "block";
           }
-          
+
           filterTodoTable();
           return true;
         }
       } catch (error) {
-        console.error('Error checking loan number:', error);
+        console.error("Error checking loan number:", error);
         return true;
       }
     }
 
     // Add change handler to exact search checkbox - only to handle unchecking
-    exactSearchCheckbox.addEventListener('change', () => {
-      console.log('Exact search checkbox changed:', exactSearchCheckbox.checked);
+    exactSearchCheckbox.addEventListener("change", () => {
       if (!exactSearchCheckbox.checked) {
         // Remove any existing message
-        const existingMessage = document.querySelector('.offshore-unallowed-message');
+        const existingMessage = document.querySelector(
+          ".offshore-unallowed-message"
+        );
         if (existingMessage) {
           existingMessage.remove();
-          console.log('Message removed');
+          console.log("Message removed");
         }
 
         // Show the table
-        const todoTable = document.querySelector('#todoTable');
+        const todoTable = document.querySelector("#todoTable");
         if (todoTable) {
-          todoTable.style.display = 'block';
-          console.log('Table shown');
+          todoTable.style.display = "block";
+          console.log("Table shown");
         }
       }
     });
 
     // Handle the apply filter button click
-    const applyFilterButton = document.querySelector('#applyFilter');
+    const applyFilterButton = document.querySelector("#applyFilter");
     if (applyFilterButton) {
-      console.log('Found apply filter button, adding click handler');
-      applyFilterButton.addEventListener('click', async (e) => {
-        console.log('Apply filter button clicked');
-        console.log('Checkbox checked:', exactSearchCheckbox.checked);
-        console.log('Loan number value:', loanNumberInput.value);
-
+      applyFilterButton.addEventListener("click", async (e) => {
         if (exactSearchCheckbox.checked && loanNumberInput.value.trim()) {
-          console.log('Exact search is checked and loan number is entered');
           const shouldSubmit = await performExactSearch();
 
           if (!shouldSubmit) {
-            console.log('Preventing form submission due to unallowed loan');
             e.preventDefault();
             e.stopPropagation();
             return false;
@@ -634,17 +687,13 @@
     }
 
     // Also handle form submission
-    const form = document.querySelector('#todo-filter');
+    const form = document.querySelector("#todo-filter");
     if (form) {
-      console.log('Found form, adding submit handler');
-      form.addEventListener('submit', async (e) => {
-        console.log('Form submitted');
+      form.addEventListener("submit", async (e) => {
         if (exactSearchCheckbox.checked && loanNumberInput.value.trim()) {
-          console.log('Exact search is checked and loan number is entered');
           const shouldSubmit = await performExactSearch();
 
           if (!shouldSubmit) {
-            console.log('Preventing form submission due to unallowed loan');
             e.preventDefault();
             e.stopPropagation();
             return false;
@@ -652,60 +701,59 @@
         }
       });
     }
-
-    console.log('=== EXACT SEARCH SETUP COMPLETE ===');
   }
 
-  // Create debounced versions of our functions
-  const debouncedFilter = debounce(filterTodoTable, 500);
-  const debouncedEnforce = debounce(enforceFiltering, 500);
+  // Create debounced versions of our functions (optimized timing)
+  const debouncedFilter = debounce(filterTodoTable, 300);
+  const debouncedEnforce = debounce(enforceFiltering, 200);
 
   /**
    * @function init
-   * @description Initializes the todo table filter
+   * @description Initializes the todo table filter (optimized)
    */
   async function init() {
-    console.log('=== INITIALIZING SCRIPT ===');
-    debugLog('Initializing todo table filter');
+    showLoader();
     pageUtils.showPage(false);
 
     try {
-      console.log('1. Waiting for extension listener');
       const listenerAvailable = await waitForListener();
-      
+
       if (listenerAvailable) {
         console.log("✅ Extension listener connected successfully");
       } else {
-        console.warn("⚠️ Extension listener not available, running in limited mode");
-        // Show the page if extension is not available
+        console.warn(
+          "⚠️ Extension listener not available, running in limited mode"
+        );
+        hideLoader();
         pageUtils.showPage(true);
         return;
       }
-      
-      console.log('2. Adding filter styles');
+
       addFilterStyles();
-      
-      console.log('3. Running initial filter');
+
       await filterTodoTable();
 
-      console.log('4. Initializing exact search handler');
-      debugLog('Initializing exact search handler');
       await handleExactSearch();
-      debugLog('Exact search handler initialized');
 
-      console.log('5. Setting up mutation observer');
-      // Set up mutation observer with debouncing
+      // More efficient mutation observer with throttling
+      let observerTimeout;
       const observer = new MutationObserver((mutations) => {
-        // Check if changes are in either table
-        const shouldFilter = mutations.some(mutation => {
+        if (observerTimeout) return;
+
+        const shouldFilter = mutations.some((mutation) => {
           const target = mutation.target;
-          return target.closest("table.new-ui-table.striped.heading-highlighted.border.shadow-regular") ||
-                 target.closest("#todoTable table.table");
+          return (
+            target.closest(
+              "table.new-ui-table.striped.heading-highlighted.border.shadow-regular"
+            ) || target.closest("#todoTable table.table")
+          );
         });
 
         if (shouldFilter) {
-          debugLog('Table changes detected, triggering filter');
-          debouncedFilter();
+          observerTimeout = setTimeout(() => {
+            debouncedFilter();
+            observerTimeout = null;
+          }, 100);
         }
       });
 
@@ -713,34 +761,29 @@
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['style', 'class']
+        attributeFilter: ["style", "class"],
       });
 
-      console.log('6. Setting up interval');
-      // Set up interval with debouncing
+      // More efficient interval checking
       setInterval(() => {
-        if (!isFiltering) {
+        if (!isFiltering && document.hasFocus()) {
           debouncedEnforce();
         }
       }, FILTER_INTERVAL_MS);
 
-      console.log('=== INITIALIZATION COMPLETE ===');
-      debugLog('Initialization complete');
-
+      hideLoader();
     } catch (error) {
-      console.error('Error initializing todo table filter:', error);
-      debugLog('Error initializing:', error);
+      console.error("Error initializing todo table filter:", error);
+      hideLoader();
       pageUtils.showPage(true);
     }
   }
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    console.log('DOM still loading, waiting for DOMContentLoaded');
-    document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
   } else {
-    console.log('DOM already loaded, initializing immediately');
+    console.log("DOM already loaded, initializing immediately");
     init();
   }
 })();
-
