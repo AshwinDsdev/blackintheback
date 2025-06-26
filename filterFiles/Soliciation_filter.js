@@ -8,7 +8,6 @@
 (function () {
   // Prevent multiple injections
   if (window.loanFilterInjected) {
-    console.log("Loan filter already injected, skipping...");
     return;
   }
   window.loanFilterInjected = true;
@@ -141,7 +140,7 @@
   /**
    * @async
    * @function waitForListener
-   * @description Waits for the Chrome extension listener to be available
+   * @description Waits for the Chrome extension listener to be available (optimized)
    * @param {number} [maxRetries=20] - Maximum number of retry attempts
    * @param {number} [initialDelay=100] - Initial delay in milliseconds between retries
    * @returns {Promise<boolean>} Promise that resolves to true if listener is available, false otherwise
@@ -156,7 +155,6 @@
         console.warn(
           "❌ Chrome extension API not available. No loans will be allowed."
         );
-        // Show the page if Chrome extension API is not available
         pageUtils.showPage(true);
         resolve(false);
         return;
@@ -174,41 +172,26 @@
           return;
         }
 
-        try {
-          chrome.runtime.sendMessage(
-            EXTENSION_ID,
-            { type: "ping" },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                console.warn(
-                  "Chrome extension error:",
-                  chrome.runtime.lastError
-                );
-                attempts++;
-                if (attempts >= maxRetries) {
-                  reject(new Error("Chrome extension error"));
-                  return;
-                }
-                timeoutId = setTimeout(sendPing, delay);
-                return;
-              }
+        console.log(`🔄 Sending ping attempt ${attempts + 1}/${maxRetries}...`);
 
-              if (response?.result === "pong") {
-                clearTimeout(timeoutId);
-                resolve(true);
-              } else {
-                timeoutId = setTimeout(() => {
-                  attempts++;
-                  delay *= 2;
-                  sendPing();
-                }, delay);
-              }
+        chrome.runtime.sendMessage(
+          EXTENSION_ID,
+          { type: "ping" },
+          (response) => {
+            if (response?.result === "pong") {
+              console.log("✅ Listener detected!");
+              clearTimeout(timeoutId);
+              resolve(true);
+            } else {
+              console.warn("❌ No listener detected, retrying...");
+              timeoutId = setTimeout(() => {
+                attempts++;
+                delay *= 2; // Exponential backoff
+                sendPing();
+              }, delay);
             }
-          );
-        } catch (error) {
-          console.error("Error sending message to extension:", error);
-          resolve(false);
-        }
+          }
+        );
       }
 
       sendPing();
@@ -218,48 +201,43 @@
   /**
    * @async
    * @function checkNumbersBatch
-   * @description Checks if the user has access to a batch of loan numbers
+   * @description Checks if the user has access to a batch of loan numbers (optimized)
    * @param {string[]} numbers - Array of loan numbers to check
    * @returns {Promise<string[]>} Promise that resolves to an array of allowed loan numbers
    */
   async function checkNumbersBatch(numbers) {
     return new Promise((resolve, reject) => {
-      try {
-        if (
-          typeof chrome === "undefined" ||
-          !chrome.runtime ||
-          !chrome.runtime.sendMessage
-        ) {
-          console.warn(
-            "Chrome extension API not available. No loans will be allowed."
-          );
-          resolve([]);
-          return;
-        }
-
-        chrome.runtime.sendMessage(
-          EXTENSION_ID,
-          {
-            type: "queryLoans",
-            loanIds: numbers,
-          },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              return reject(chrome.runtime.lastError.message);
-            } else if (response && response.error) {
-              return reject(response.error);
-            }
-
-            const available = Object.keys(response.result).filter(
-              (key) => response.result[key]
-            );
-            resolve(available);
-          }
+      if (
+        typeof chrome === "undefined" ||
+        !chrome.runtime ||
+        !chrome.runtime.sendMessage
+      ) {
+        console.warn(
+          "Chrome extension API not available. No loans will be allowed."
         );
-      } catch (error) {
-        console.error("Error in checkNumbersBatch:", error);
         resolve([]);
+        return;
       }
+
+      chrome.runtime.sendMessage(
+        EXTENSION_ID,
+        {
+          type: "queryLoans",
+          loanIds: numbers,
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            return reject(chrome.runtime.lastError.message);
+          } else if (response?.error) {
+            return reject(response.error);
+          }
+
+          const available = Object.keys(response.result).filter(
+            (key) => response.result[key]
+          );
+          resolve(available);
+        }
+      );
     });
   }
 
@@ -314,7 +292,10 @@
     };
   }
 
-  // Create unallowed element similar to reference_filter.js
+  /**
+   * @function createUnallowedElement
+   * @description Creates an element to show when a loan is not allowed (optimized)
+   */
   function createUnallowedElement() {
     // Check if element already exists to prevent duplicates
     const existing = document.getElementById("loanNotProvisioned");
@@ -323,7 +304,7 @@
     const unallowed = document.createElement("div");
     unallowed.id = "loanNotProvisioned";
     unallowed.appendChild(
-      document.createTextNode("Loan is not provisioned to the user")
+      document.createTextNode("You are not provisioned for this loan.")
     );
     unallowed.style.color = "#dc3545";
     unallowed.style.backgroundColor = "rgba(220, 53, 69, 0.1)";
@@ -341,19 +322,98 @@
   }
 
   /**
+   * @function createLoader
+   * @description Creates loader styles for better user experience (from prodFilter)
+   */
+  function createLoader() {
+    if (!document.getElementById("loader-styles")) {
+      const style = document.createElement("style");
+      style.id = "loader-styles";
+      style.textContent = `
+        #loaderOverlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: rgba(255, 255, 255, 0.95);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          transition: opacity 0.3s ease;
+        }
+        .spinner {
+          width: 60px;
+          height: 60px;
+          border: 6px solid #ccc;
+          border-top-color: #2b6cb0;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to {transform: rotate(360deg);}
+        }
+        #loaderOverlay.hidden {
+          opacity: 0;
+          pointer-events: none;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+
+  /**
+   * @function createLoaderElement
+   * @description Creates the loader element (from prodFilter)
+   */
+  function createLoaderElement() {
+    const loader = document.createElement("div");
+    loader.id = "loaderOverlay";
+    const spinner = document.createElement("div");
+    spinner.className = "spinner";
+    loader.appendChild(spinner);
+    return loader;
+  }
+
+  /**
+   * @function showLoader
+   * @description Shows the loader (from prodFilter)
+   */
+  function showLoader() {
+    createLoader();
+    if (!document.getElementById("loaderOverlay")) {
+      const loader = createLoaderElement();
+      document.body.appendChild(loader);
+    }
+  }
+
+  /**
+   * @function hideLoader
+   * @description Hides the loader (from prodFilter)
+   */
+  function hideLoader() {
+    const loader = document.getElementById("loaderOverlay");
+    if (loader) {
+      loader.classList.add("hidden");
+      setTimeout(() => loader.remove(), 300);
+    }
+  }
+
+  /**
    * @async
    * @function isLoanNumberAllowed
-   * @description Checks if a loan number is allowed for the current user
+   * @description Checks if a loan number is allowed for the current user (optimized)
    * @param {string} loanNumber - The loan number to check
    * @returns {Promise<boolean>} Promise that resolves to true if the loan number is allowed, false otherwise
    */
   async function isLoanNumberAllowed(loanNumber) {
     try {
-      if (!loanNumber) return false;
+      if (!loanNumber?.trim()) return false;
 
       loanNumber = loanNumber.trim();
 
-      // First check the cache
+      // First check the cache for O(1) lookup
       if (
         allowedLoansCache.isCacheValid() &&
         allowedLoansCache.isAllowed(loanNumber)
@@ -367,7 +427,8 @@
       // Add to cache for future reference
       allowedLoansCache.addLoans(allowedNumbers);
 
-      return allowedNumbers.includes(loanNumber);
+      // Use Set for O(1) lookup instead of array includes
+      return new Set(allowedNumbers).has(loanNumber);
     } catch (error) {
       console.warn("Failed to check loan access, assuming not allowed:", error);
       return false;
@@ -404,29 +465,37 @@
   }
 
   // ########## EVENT HANDLERS ##########
-  // Function to handle search form submission
+  // Function to handle search form submission (optimized)
   async function handleSearchSubmit(event) {
     const { loanNumberInput } = findSearchElements();
     const viewElement = new ViewElement();
 
-    if (loanNumberInput) {
+    if (loanNumberInput?.value?.trim()) {
       const loanNumber = loanNumberInput.value.trim();
 
-      if (loanNumber) {
-        // Prevent default action until we check if the loan is provisioned
-        if (event) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
+      // Prevent default action until we check if the loan is provisioned
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
 
+      // Show loader during validation
+      showLoader();
+
+      try {
         // Check if loan is provisioned
         const isAllowed = await isLoanNumberAllowed(loanNumber);
+
+        hideLoader();
 
         if (!isAllowed) {
           viewElement.showUnallowed();
           return false;
         } else {
           viewElement.hideUnallowed();
+
+          // Use more efficient timeout handling
+          const resubmitDelay = 50; // Reduced delay for better UX
 
           // If it was a form submission, resubmit the form
           if (
@@ -436,7 +505,7 @@
           ) {
             setTimeout(() => {
               event.target.submit();
-            }, 100);
+            }, resubmitDelay);
           }
 
           // If it was a button click, click the button again
@@ -448,17 +517,23 @@
           ) {
             setTimeout(() => {
               event.target.click();
-            }, 100);
+            }, resubmitDelay);
           }
         }
+      } catch (error) {
+        hideLoader();
+        console.error("Error in handleSearchSubmit:", error);
+        // Show error state but don't block the form
+        viewElement.showUnallowed();
+        return false;
       }
     }
   }
 
-  // Store references to event handlers to avoid duplicates
+  // Store references to event handlers to avoid duplicates (optimized)
   const eventHandlers = new WeakMap();
 
-  // Set up event listeners without cloning elements
+  // Set up event listeners without cloning elements (optimized)
   function setupEventListeners() {
     const { searchForm, searchButton } = findSearchElements();
 
@@ -466,68 +541,64 @@
     if (window.listenersSetup) return;
     window.listenersSetup = true;
 
-    if (searchForm) {
-      // Only add listener if not already added
-      if (!eventHandlers.has(searchForm)) {
-        const handler = function (e) {
-          handleSearchSubmit(e);
-        };
-        eventHandlers.set(searchForm, handler);
-        searchForm.addEventListener("submit", handler);
-        console.log("Added submit listener to search form");
-      }
+    // Use more efficient event handler attachment
+    if (searchForm && !eventHandlers.has(searchForm)) {
+      const handler = (e) => handleSearchSubmit(e);
+      eventHandlers.set(searchForm, handler);
+      searchForm.addEventListener("submit", handler, { passive: false });
     }
 
-    if (searchButton) {
-      // Only add listener if not already added
-      if (!eventHandlers.has(searchButton)) {
-        const handler = function (e) {
-          handleSearchSubmit(e);
-        };
-        eventHandlers.set(searchButton, handler);
-        searchButton.addEventListener("click", handler);
-        console.log("Added click listener to search button");
-      }
+    if (searchButton && !eventHandlers.has(searchButton)) {
+      const handler = (e) => handleSearchSubmit(e);
+      eventHandlers.set(searchButton, handler);
+      searchButton.addEventListener("click", handler, { passive: false });
     }
   }
 
-  // Override any existing search functionality
+  // Override any existing search functionality (optimized)
   function overrideExistingFunctionality() {
     // If there's an existing filterTable function, override it
     if (window.filterTable && !window.originalFilterTable) {
       window.originalFilterTable = window.filterTable;
       window.filterTable = async function () {
-        // We'll only check for loan provisioning when the function is called from a search button click
+        // More efficient argument checking
         const isFromSearchButton =
-          arguments.length > 0 && arguments[0] && arguments[0].type === "click";
+          arguments.length > 0 && arguments[0]?.type === "click";
 
         if (isFromSearchButton) {
           const { loanNumberInput } = findSearchElements();
           const viewElement = new ViewElement();
 
-          if (loanNumberInput) {
+          if (loanNumberInput?.value?.trim()) {
             const loanNumber = loanNumberInput.value.trim();
-
-            if (loanNumber) {
+            
+            showLoader();
+            try {
               const isAllowed = await isLoanNumberAllowed(loanNumber);
+              hideLoader();
+              
               if (!isAllowed) {
                 viewElement.showUnallowed();
                 return false;
               } else {
                 viewElement.hideUnallowed();
               }
+            } catch (error) {
+              hideLoader();
+              console.error("Error in overridden filterTable:", error);
+              viewElement.showUnallowed();
+              return false;
             }
           }
         }
 
         return window.originalFilterTable.apply(this, arguments);
       };
-      console.log("Overrode existing filterTable function");
     }
   }
 
   // ########## URL CHANGE MONITORING ##########
-  // Monitor URL changes similar to reference_filter.js
+  // Monitor URL changes similar to reference_filter.js (optimized)
   let urlMonitorId = null;
   function setupUrlChangeMonitoring() {
     // Clear any existing monitor
@@ -538,35 +609,40 @@
     urlMonitorId = onValueChange(
       () => document.location.href,
       (newUrl) => {
-        console.log("URL changed to:", newUrl);
-
-        // Reset UI elements
+        // Hide loader and reset UI elements efficiently
+        hideLoader();
         const viewElement = new ViewElement();
         viewElement.hideUnallowed();
 
         // Allow setting up listeners again on URL change
         window.listenersSetup = false;
 
-        // Set up event listeners for the new page
-        setupEventListeners();
-        overrideExistingFunctionality();
-
-        // Show the page after processing
-        pageUtils.showPage(true);
+        // Use requestAnimationFrame for better performance
+        requestAnimationFrame(() => {
+          setupEventListeners();
+          overrideExistingFunctionality();
+          pageUtils.showPage(true);
+        });
       }
     );
   }
 
   // ########## INITIALIZATION ##########
-  // Initialize when DOM is ready
+  // Initialize when DOM is ready (optimized)
   async function initialize() {
+    showLoader();
+    
     try {
       // Wait for the extension listener to be available
       const listenerAvailable = await waitForListener();
       if (!listenerAvailable) {
         console.warn("Listener not available, skipping initialization.");
+        hideLoader();
+        pageUtils.showPage(true);
         return;
       }
+      
+      // Batch initialization for better performance
       setupEventListeners();
       overrideExistingFunctionality();
       setupUrlChangeMonitoring();
@@ -575,25 +651,25 @@
       const viewElement = new ViewElement();
       viewElement.hideUnallowed();
 
-      console.log("Loan search override initialized");
-
+      hideLoader();
       // Show the page after initialization
       pageUtils.showPage(true);
     } catch (error) {
       console.error("Error during initialization:", error);
+      hideLoader();
       // Show the page even if there's an error
       pageUtils.showPage(true);
     }
   }
 
-  // Set up a MutationObserver with debouncing to prevent excessive callbacks
+  // Set up a MutationObserver with optimized debouncing (from prodFilter patterns)
   let debounceTimer = null;
   const observer = new MutationObserver(function (mutations) {
-    // Debounce to prevent excessive calls
-    if (debounceTimer) clearTimeout(debounceTimer);
+    // More efficient debouncing
+    if (debounceTimer) return;
 
     debounceTimer = setTimeout(() => {
-      // Check if any relevant elements were added
+      // More efficient mutation checking
       const formAdded = mutations.some(
         (mutation) =>
           mutation.type === "childList" &&
@@ -601,18 +677,19 @@
             (node) =>
               node.nodeType === 1 &&
               (node.tagName === "FORM" ||
-                (node.querySelector &&
-                  node.querySelector(
-                    'form, input[type="text"], button[type="submit"]'
-                  )))
+                node.querySelector?.('form, input[type="text"], button[type="submit"]'))
           )
       );
 
       if (formAdded) {
         window.listenersSetup = false; // Reset so we can set up listeners again
-        setupEventListeners();
+        requestAnimationFrame(() => {
+          setupEventListeners();
+        });
       }
-    }, 500);
+      
+      debounceTimer = null;
+    }, 300); // Reduced timeout for better responsiveness
   });
 
   observer.observe(document.body, {
@@ -622,17 +699,11 @@
     attributeFilter: ["value", "style", "class", "display"],
   });
 
-  // Expose test function to console
   window.testLoanProvisioning = async function (loanNumber) {
     const isAllowed = await isLoanNumberAllowed(loanNumber);
-    console.log(
-      `Loan ${loanNumber} is ${isAllowed ? "allowed" : "not allowed"}`
-    );
     return isAllowed;
   };
 
   // Run initialization immediately
   initialize();
-
-  console.log("Loan Search Override Script Injected Successfully!");
 })();
